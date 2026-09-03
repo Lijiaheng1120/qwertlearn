@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QwertLearn 原型 A · 绘本冒险岛</title>
+  <style>
+    :root {
+      --ink: #17353b;
+      --muted: #587279;
+      --paper: #fffdf4;
+      --sky: #dff6ff;
+      --green: #3cae70;
+      --green-dark: #238653;
+      --yellow: #ffd96a;
+      --orange: #ff916d;
+      --blue: #5aa9e6;
+      --shadow: 0 18px 50px rgba(35, 92, 87, .14);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-width: 1080px;
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(circle at 10% 5%, rgba(255,255,255,.95) 0 5%, transparent 14%),
+        linear-gradient(180deg, #ccefff 0 39%, #f5fbdf 39% 100%);
+    }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; }
+    .app { min-height: 100vh; padding: 20px 34px 30px; position: relative; overflow: hidden; }
+    .app::before, .app::after {
+      content: ""; position: absolute; border-radius: 50%; background: rgba(255,255,255,.72); z-index: 0;
+      filter: blur(.2px);
+    }
+    .app::before { width: 190px; height: 48px; left: 70px; top: 118px; box-shadow: 82px 14px 0 -10px rgba(255,255,255,.72); }
+    .app::after { width: 140px; height: 38px; right: 90px; top: 155px; box-shadow: -65px 12px 0 -7px rgba(255,255,255,.7); }
+    .topbar {
+      height: 70px; max-width: 1380px; margin: 0 auto; padding: 0 18px;
+      display: flex; align-items: center; justify-content: space-between;
+      border: 2px solid rgba(23,53,59,.08); border-radius: 24px; background: rgba(255,253,244,.9);
+      box-shadow: 0 10px 32px rgba(35,92,87,.08); backdrop-filter: blur(10px); position: relative; z-index: 3;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 900; letter-spacing: -.4px; font-size: 21px; }
+    .brand-mark {
+      width: 44px; height: 44px; border-radius: 15px; display: grid; place-items: center;
+      background: var(--yellow); border: 2px solid rgba(23,53,59,.12); box-shadow: inset 0 -4px rgba(186,132,25,.12);
+    }
+    .brand-mark svg { width: 28px; height: 28px; }
+    .switcher { display: flex; align-items: center; gap: 8px; padding: 5px; border-radius: 16px; background: #eef5eb; }
+    .switcher a { padding: 9px 13px; border-radius: 12px; color: #658077; font-size: 13px; font-weight: 750; }
+    .switcher a.active { color: #fff; background: var(--green-dark); box-shadow: 0 5px 12px rgba(35,134,83,.22); }
+    .user-actions { display: flex; align-items: center; gap: 10px; }
+    .icon-button { width: 42px; height: 42px; border: 0; border-radius: 14px; display: grid; place-items: center; background: #eef7f8; color: var(--ink); }
+    .icon-button svg { width: 20px; height: 20px; }
+    .profile { display: flex; gap: 10px; align-items: center; padding: 6px 12px 6px 7px; border-radius: 16px; background: #fff1d5; font-weight: 800; font-size: 14px; }
+    .avatar { width: 35px; height: 35px; display: grid; place-items: center; border-radius: 12px; color: #fff; background: var(--orange); font-size: 15px; }
+    .content { max-width: 1300px; margin: 18px auto 0; position: relative; z-index: 2; }
+    .hero { display: flex; align-items: end; justify-content: space-between; padding: 4px 12px 12px; }
+    .eyebrow { margin: 0 0 4px; color: var(--green-dark); font-size: 13px; font-weight: 850; letter-spacing: 1.5px; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(30px, 3vw, 44px); line-height: 1.08; letter-spacing: -1.8px; }
+    .hero-copy { max-width: 680px; margin: 8px 0 0; color: var(--muted); font-weight: 600; }
+    .daily {
+      width: 300px; padding: 14px 16px; border-radius: 18px; background: rgba(255,253,244,.86);
+      border: 2px solid rgba(23,53,59,.07); box-shadow: 0 8px 24px rgba(35,92,87,.08);
+    }
+    .daily-top { display: flex; justify-content: space-between; font-size: 13px; font-weight: 800; }
+    .daily-top span:last-child { color: var(--green-dark); }
+    .bar { height: 10px; margin-top: 9px; border-radius: 999px; overflow: hidden; background: #dcebdc; }
+    .bar i { display: block; width: 68%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--green), #79ca66); }
+    .map-panel {
+      height: 492px; position: relative; overflow: hidden; border: 3px solid rgba(23,53,59,.11); border-radius: 34px;
+      background: linear-gradient(180deg, #dff6ff 0 43%, #a9dd87 43% 100%); box-shadow: var(--shadow);
+    }
+    .map-panel::before {
+      content: ""; position: absolute; left: -6%; right: -6%; top: 40%; height: 100px;
+      background: #c8ed9f; border-radius: 50% 52% 0 0 / 45% 42% 0 0;
+    }
+    .sun { width: 74px; height: 74px; border-radius: 50%; background: var(--yellow); position: absolute; top: 25px; right: 55px; box-shadow: 0 0 0 13px rgba(255,217,106,.24); }
+    .mountain { position: absolute; top: 92px; width: 0; height: 0; border-left: 130px solid transparent; border-right: 130px solid transparent; border-bottom: 155px solid #7fbf88; opacity: .8; }
+    .mountain.one { left: 29%; } .mountain.two { left: 45%; transform: scale(.82); opacity: .62; }
+    .river { position: absolute; left: 0; bottom: 0; width: 45%; height: 285px; background: linear-gradient(145deg, #64c3dd, #4ba5cf); border-radius: 0 58% 0 0; transform: skewX(-10deg); transform-origin: bottom; }
+    .river::after { content: ""; position: absolute; inset: 16px 28px; border: 3px dashed rgba(255,255,255,.42); border-radius: 50%; }
+    .road { position: absolute; right: -30px; bottom: 0; width: 53%; height: 230px; background: #ead6a8; clip-path: polygon(15% 100%, 100% 100%, 100% 38%, 76% 30%, 63% 38%, 55% 23%, 45% 32%, 36% 13%, 26% 22%); }
+    .path-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+    .location {
+      position: absolute; width: 250px; padding: 18px; border-radius: 24px; background: rgba(255,253,244,.96);
+      border: 3px solid #fff; box-shadow: 0 16px 28px rgba(33,80,67,.18); transition: transform .2s ease;
+    }
+    .location:hover { transform: translateY(-4px); }
+    .location .tag { display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px; border-radius: 999px; font-size: 11px; font-weight: 850; }
+    .location h2 { margin: 9px 0 4px; font-size: 23px; letter-spacing: -.7px; }
+    .location p { margin: 0 0 12px; color: var(--muted); font-size: 13px; font-weight: 600; line-height: 1.45; }
+    .location .cta { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 850; }
+    .location .cta b { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 10px; color: #fff; }
+    .pond { left: 7%; top: 165px; }
+    .pond .tag { color: #0c7555; background: #d9f6dd; } .pond .cta b { background: var(--green-dark); }
+    .city { right: 7%; top: 145px; }
+    .city .tag { color: #a84b31; background: #ffeadf; } .city .cta b { background: var(--orange); }
+    .camp { width: 226px; left: calc(50% - 113px); top: 36px; }
+    .camp .tag { color: #785b00; background: #fff1b9; } .camp .cta b { background: #d99e14; }
+    .mini-art { height: 64px; margin: -2px 0 2px; position: relative; }
+    .frog-face { width: 68px; height: 45px; left: 16px; bottom: 2px; position: absolute; border-radius: 45% 45% 50% 50%; background: #64bd67; box-shadow: inset 0 -7px #4a9d50; }
+    .frog-face::before, .frog-face::after { content: ""; position: absolute; top: -12px; width: 26px; height: 26px; border-radius: 50%; background: #70ca72; border: 6px solid #70ca72; box-shadow: inset 0 0 0 5px #fff; }
+    .frog-face::before { left: 4px; } .frog-face::after { right: 4px; }
+    .lily { position: absolute; right: 16px; bottom: 7px; width: 83px; height: 36px; border-radius: 50%; background: #4d9f52; transform: rotate(-7deg); }
+    .lily::after { content: "cat"; color: #fff; font-size: 13px; font-weight: 900; position: absolute; left: 25px; top: 9px; transform: rotate(7deg); }
+    .city-art { height: 64px; position: relative; overflow: hidden; }
+    .building { position: absolute; bottom: 0; width: 36px; border-radius: 4px 4px 0 0; background: #7cb3d2; box-shadow: inset 0 0 0 4px rgba(255,255,255,.15); }
+    .building::after { content: ""; position: absolute; inset: 9px 8px; background: repeating-linear-gradient(180deg, #fff5b5 0 5px, transparent 5px 11px); }
+    .building.b1 { left: 12px; height: 44px; } .building.b2 { left: 53px; height: 59px; background: #ea9a7a; } .building.b3 { left: 94px; height: 38px; background: #6999c3; }
+    .runner { position: absolute; right: 25px; bottom: 5px; width: 52px; height: 26px; border-radius: 16px 18px 9px 9px; background: #315d8c; }
+    .runner::before { content: ""; width: 17px; height: 17px; border-radius: 50%; position: absolute; right: 4px; top: -13px; background: #ffd3ad; border: 5px solid #315d8c; }
+    .sound-note { position: absolute; left: 22px; top: 20px; display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 14px; background: rgba(255,253,244,.88); color: var(--muted); font-size: 12px; font-weight: 750; }
+    .sound-note svg { width: 17px; height: 17px; color: var(--green-dark); }
+    .bottom-row { display: grid; grid-template-columns: 1.2fr .8fr .8fr; gap: 14px; margin-top: 14px; }
+    .bottom-card { min-height: 92px; display: flex; align-items: center; gap: 14px; padding: 15px 17px; border: 2px solid rgba(23,53,59,.07); border-radius: 22px; background: rgba(255,253,244,.93); box-shadow: 0 8px 22px rgba(35,92,87,.07); }
+    .bottom-card .round { width: 52px; height: 52px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 17px; background: #e6f4e4; }
+    .bottom-card .round svg { width: 27px; height: 27px; }
+    .bottom-card h3 { margin: 0 0 3px; font-size: 15px; }
+    .bottom-card p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .stat { margin-left: auto; text-align: right; } .stat b { display: block; font-size: 22px; } .stat small { color: var(--muted); }
+    @media (max-width: 1120px) { .app { padding-inline: 18px; } .content { max-width: 1040px; } .location { width: 220px; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2.5" y="5" width="19" height="14" rx="3"/><path d="M6 9h1m3 0h1m3 0h1m3 0h1M6 13h1m3 0h5m3 0h1" stroke-linecap="round"/></svg>
+        </span>
+        <span>QwertLearn</span>
+      </div>
+      <nav class="switcher" aria-label="原型切换">
+        <a class="active" href="a-storybook-island.html">A 绘本冒险岛</a>
+        <a href="b-pixel-arcade.html">B 像素街机</a>
+        <a href="c-learning-dashboard.html">C 学习仪表盘</a>
+      </nav>
+      <div class="user-actions">
+        <button class="icon-button" aria-label="声音设置">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6.5 9H3v6h3.5L11 19V5Z"/><path d="M15 9c1.2 1.6 1.2 4.4 0 6m3-9c3 3.4 3 8.6 0 12" stroke-linecap="round"/></svg>
+        </button>
+        <div class="profile"><span class="avatar">小Q</span><span>小探险家</span></div>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">今日冒险 · 第 4 天</p>
+          <h1>准备好用单词开启新旅程了吗？</h1>
+          <p class="hero-copy">先热身一分钟，再选择池塘或城市。今天只需要完成 8 分钟，就能得到一枚新贴纸。</p>
+        </div>
+        <div class="daily" aria-label="今日目标进度">
+          <div class="daily-top"><span>今日目标</span><span>6 / 8 分钟</span></div>
+          <div class="bar"><i></i></div>
+        </div>
+      </section>
+
+      <section class="map-panel" aria-label="冒险地图">
+        <div class="sound-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l10-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></svg>
+          音乐氛围：木琴、轻鼓点与水波声
+        </div>
+        <div class="sun"></div><div class="mountain one"></div><div class="mountain two"></div><div class="river"></div><div class="road"></div>
+        <svg class="path-svg" viewBox="0 0 1300 492" fill="none"><path d="M322 350C448 307 438 201 574 183C720 164 796 294 944 307" stroke="#fff8d6" stroke-width="18" stroke-linecap="round" stroke-dasharray="2 27"/></svg>
+
+        <a class="location camp" href="#">
+          <span class="tag">建议先开始 · 1 分钟</span>
+          <h2>键盘训练营</h2>
+          <p>找到 F 和 J，让双手准备出发。</p>
+          <div class="cta"><span>继续热身</span><b>→</b></div>
+        </a>
+
+        <a class="location pond" href="#">
+          <div class="mini-art"><span class="frog-face"></span><span class="lily"></span></div>
+          <span class="tag">推荐 · 初级速度</span>
+          <h2>青蛙跳荷叶</h2>
+          <p>打对单词，帮助青蛙稳稳跳到下一片荷叶。</p>
+          <div class="cta"><span>开始池塘冒险</span><b>→</b></div>
+        </a>
+
+        <a class="location city" href="#">
+          <div class="city-art"><span class="building b1"></span><span class="building b2"></span><span class="building b3"></span><span class="runner"></span></div>
+          <span class="tag">最佳记录 · 72 秒</span>
+          <h2>城市追踪战</h2>
+          <p>准确输入每个单词，一点一点追回城市徽章。</p>
+          <div class="cta"><span>继续城市任务</span><b>→</b></div>
+        </a>
+      </section>
+
+      <section class="bottom-row">
+        <article class="bottom-card">
+          <span class="round">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#238653" stroke-width="2"><path d="M4 5.5A3.5 3.5 0 0 1 7.5 2H20v17H7.5A3.5 3.5 0 0 0 4 22V5.5Z"/><path d="M4 18.5A3.5 3.5 0 0 1 7.5 15H20"/></svg>
+          </span>
+          <div><h3>本周单词本</h3><p>已掌握 24 个，还有 5 个易错词等待复习。</p></div>
+          <div class="stat"><b>24</b><small>已掌握</small></div>
+        </article>
+        <article class="bottom-card">
+          <span class="round" style="background:#fff0d4">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#d69219" stroke-width="2"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z"/></svg>
+          </span>
+          <div><h3>连续练习</h3><p>今天完成后获得池塘贴纸。</p></div>
+          <div class="stat"><b>4 天</b><small>轻松坚持</small></div>
+        </article>
+        <article class="bottom-card">
+          <span class="round" style="background:#e3effb">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#477eae" stroke-width="2"><path d="M4 19V9m6 10V5m6 14v-7m4 7H2" stroke-linecap="round"/></svg>
+          </span>
+          <div><h3>我的进步</h3><p>正确率比昨天提高了 3%。</p></div>
+          <div class="stat"><b>91%</b><small>正确率</small></div>
+        </article>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

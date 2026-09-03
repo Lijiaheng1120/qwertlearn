@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QwertLearn 原型 C · 现代学习仪表盘</title>
+  <style>
+    :root {
+      --bg: #f5f6f1;
+      --surface: #ffffff;
+      --ink: #202a2c;
+      --muted: #748083;
+      --line: #e4e8e3;
+      --green: #376f5b;
+      --green-soft: #dfeee6;
+      --orange: #e8774d;
+      --orange-soft: #fbe7de;
+      --blue: #4d78b6;
+      --blue-soft: #e1eaf6;
+      --shadow: 0 18px 45px rgba(29, 49, 43, .08);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 1080px; min-height: 100vh; color: var(--ink); background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; }
+    .layout { min-height: 100vh; display: grid; grid-template-columns: 228px minmax(590px, 1fr) 308px; }
+    .sidebar { padding: 24px 18px; background: #244a3d; color: #fff; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+    .sidebar::after { content: ""; position: absolute; width: 190px; height: 190px; border-radius: 50%; right: -95px; bottom: 70px; border: 34px solid rgba(255,255,255,.035); }
+    .brand { height: 56px; display: flex; align-items: center; gap: 11px; font-size: 18px; font-weight: 850; letter-spacing: -.4px; }
+    .brand-mark { width: 38px; height: 38px; border-radius: 13px; display: grid; place-items: center; background: #f3cc68; color: #244a3d; }
+    .brand-mark svg { width: 23px; height: 23px; }
+    .nav-label { margin: 34px 12px 8px; color: rgba(255,255,255,.46); font-size: 10px; font-weight: 800; letter-spacing: 1.4px; }
+    .nav { display: grid; gap: 6px; }
+    .nav a { display: flex; align-items: center; gap: 11px; padding: 12px; border-radius: 14px; color: rgba(255,255,255,.68); font-size: 13px; font-weight: 700; }
+    .nav a.active { color: #234a3d; background: #fff; box-shadow: 0 8px 18px rgba(10,30,23,.18); }
+    .nav svg { width: 19px; height: 19px; }
+    .sidebar-tip { margin-top: auto; padding: 15px; border-radius: 18px; background: rgba(255,255,255,.085); position: relative; z-index: 2; }
+    .sidebar-tip b { font-size: 12px; } .sidebar-tip p { margin: 5px 0 10px; color: rgba(255,255,255,.62); font-size: 10px; line-height: 1.5; }
+    .sidebar-tip .mini-bar { height: 6px; border-radius: 9px; background: rgba(255,255,255,.12); overflow: hidden; }
+    .sidebar-tip .mini-bar i { display: block; width: 68%; height: 100%; background: #f3cc68; }
+    .main { padding: 24px 28px 30px; overflow: hidden; }
+    .top { display: flex; justify-content: space-between; align-items: center; }
+    .top small { display: block; color: var(--muted); font-weight: 700; }
+    .top h1 { margin: 4px 0 0; font-size: 27px; letter-spacing: -1px; }
+    .switcher { display: flex; padding: 4px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); }
+    .switcher a { padding: 8px 10px; border-radius: 9px; color: var(--muted); font-size: 10px; font-weight: 750; }
+    .switcher a.active { color: #fff; background: var(--green); }
+    .continue-card { min-height: 282px; margin-top: 22px; border-radius: 28px; overflow: hidden; display: grid; grid-template-columns: 1.05fr .95fr; color: #fff; background: var(--green); box-shadow: var(--shadow); }
+    .continue-copy { padding: 29px 28px; display: flex; flex-direction: column; align-items: flex-start; position: relative; z-index: 2; }
+    .continue-copy .pill { padding: 7px 10px; border-radius: 999px; color: #244a3d; background: #dff2e7; font-size: 10px; font-weight: 850; }
+    .continue-copy h2 { max-width: 390px; margin: 15px 0 8px; font-size: 30px; line-height: 1.14; letter-spacing: -1.2px; }
+    .continue-copy p { max-width: 400px; margin: 0; color: rgba(255,255,255,.68); font-size: 12px; line-height: 1.55; }
+    .primary { margin-top: auto; padding: 12px 17px; border: 0; border-radius: 13px; color: #244a3d; background: #f3cc68; font-weight: 850; font-size: 12px; box-shadow: 0 8px 18px rgba(15,43,33,.2); }
+    .scene { position: relative; overflow: hidden; background: linear-gradient(180deg, #9ed9d6 0 43%, #5ca799 43% 100%); }
+    .scene::before { content: ""; position: absolute; width: 280px; height: 90px; border-radius: 50%; right: -30px; top: 100px; background: rgba(255,255,255,.13); transform: rotate(-7deg); }
+    .scene .hill { position: absolute; width: 240px; height: 110px; border-radius: 50% 50% 0 0; background: #77b99c; bottom: 0; right: -10px; }
+    .scene .lily { position: absolute; width: 100px; height: 35px; border-radius: 50%; background: #3d7d50; box-shadow: inset 0 -8px #30643e; }
+    .scene .lily.one { left: 35px; bottom: 41px; } .scene .lily.two { right: 28px; bottom: 102px; transform: scale(.85); }
+    .scene .word { position: absolute; right: 45px; bottom: 110px; z-index: 3; color: #fff; font-size: 17px; font-weight: 900; }
+    .frog { position: absolute; left: 57px; bottom: 68px; width: 57px; height: 42px; border-radius: 48% 48% 42% 42%; background: #77c562; box-shadow: inset 0 -8px #5ba447; z-index: 3; }
+    .frog::before, .frog::after { content: ""; position: absolute; top: -13px; width: 23px; height: 23px; border-radius: 50%; background: #77c562; box-shadow: inset 0 0 0 7px #fff; }
+    .frog::before { left: 1px; } .frog::after { right: 1px; }
+    .music-chip { position: absolute; right: 16px; top: 15px; z-index: 5; padding: 8px 10px; border-radius: 12px; color: #244a3d; background: rgba(255,255,255,.83); font-size: 9px; font-weight: 800; backdrop-filter: blur(6px); }
+    .section-head { margin: 23px 2px 11px; display: flex; justify-content: space-between; align-items: center; }
+    .section-head h3 { margin: 0; font-size: 16px; } .section-head a { color: var(--green); font-size: 11px; font-weight: 800; }
+    .games { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .game-card { min-height: 171px; padding: 18px; border: 1px solid var(--line); border-radius: 22px; background: var(--surface); box-shadow: 0 8px 25px rgba(29,49,43,.045); display: grid; grid-template-columns: 1fr 88px; gap: 8px; }
+    .game-card .icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 14px; color: var(--green); background: var(--green-soft); }
+    .game-card.orange .icon { color: var(--orange); background: var(--orange-soft); }
+    .game-card svg { width: 23px; height: 23px; }
+    .game-card h4 { margin: 11px 0 4px; font-size: 15px; } .game-card p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+    .game-card .meta { align-self: end; color: var(--green); font-size: 10px; font-weight: 850; }
+    .game-card.orange .meta { color: var(--orange); }
+    .mini-visual { align-self: center; height: 108px; border-radius: 18px; overflow: hidden; position: relative; background: var(--green-soft); }
+    .mini-visual.keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 17px 10px; }
+    .mini-visual.keys i { height: 22px; border-radius: 6px; background: #fff; box-shadow: 0 2px 0 #bfd7c8; }
+    .mini-visual.keys i.hot { background: #f3cc68; box-shadow: 0 2px 0 #caa53e; }
+    .mini-visual.city { background: var(--orange-soft); }
+    .mini-visual.city::before { content: ""; position: absolute; left: 0; right: 0; bottom: 21px; height: 4px; background: #b96b51; }
+    .mini-visual.city i { position: absolute; bottom: 25px; width: 13px; background: var(--orange); border-radius: 5px 5px 2px 2px; }
+    .mini-visual.city i:first-child { left: 18px; height: 34px; } .mini-visual.city i:last-child { right: 15px; height: 53px; background: #76566b; }
+    .right { padding: 24px 22px 28px 0; }
+    .profile-card, .right-card { border: 1px solid var(--line); border-radius: 22px; background: var(--surface); box-shadow: 0 8px 24px rgba(29,49,43,.045); }
+    .profile-card { padding: 16px; display: flex; align-items: center; gap: 11px; }
+    .avatar { width: 46px; height: 46px; border-radius: 16px; display: grid; place-items: center; color: #fff; background: var(--orange); font-size: 13px; font-weight: 850; }
+    .profile-card b { display: block; font-size: 13px; } .profile-card small { color: var(--muted); font-size: 10px; }
+    .profile-card button { margin-left: auto; width: 34px; height: 34px; border: 0; border-radius: 11px; background: #f2f4ef; }
+    .right-card { margin-top: 14px; padding: 18px; }
+    .right-title { display: flex; align-items: center; justify-content: space-between; }
+    .right-title h3 { margin: 0; font-size: 14px; } .right-title span { color: var(--muted); font-size: 9px; }
+    .ring-wrap { height: 145px; display: grid; place-items: center; position: relative; }
+    .ring { width: 108px; height: 108px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--green) 0 68%, #e8ece7 68%); position: relative; }
+    .ring::before { content: ""; width: 78px; height: 78px; border-radius: 50%; background: #fff; position: absolute; }
+    .ring b { z-index: 2; font-size: 24px; } .ring small { z-index: 2; position: absolute; margin-top: 37px; color: var(--muted); font-size: 9px; }
+    .week { display: flex; justify-content: space-between; align-items: end; height: 72px; margin-top: 14px; }
+    .day { width: 25px; text-align: center; color: var(--muted); font-size: 8px; }
+    .day i { display: block; width: 10px; margin: 0 auto 6px; border-radius: 6px; background: #dfe7e1; }
+    .day.done i { background: var(--green); } .day.today i { background: #f3cc68; }
+    .audio-row { display: flex; align-items: center; gap: 10px; margin-top: 15px; }
+    .audio-icon { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; color: var(--blue); background: var(--blue-soft); }
+    .audio-icon svg { width: 18px; }
+    .audio-row b { display: block; font-size: 11px; } .audio-row small { color: var(--muted); font-size: 9px; }
+    .volume { margin-left: auto; width: 57px; height: 5px; border-radius: 5px; background: #e4e8e3; }
+    .volume i { display: block; width: 43%; height: 100%; border-radius: inherit; background: var(--blue); }
+    @media (max-width: 1180px) { .layout { grid-template-columns: 205px minmax(560px,1fr) 280px; } .main { padding-inline: 20px; } }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M7 10h1m3 0h1m3 0h2M7 14h10" stroke-linecap="round"/></svg></span>QwertLearn</div>
+      <div class="nav-label">学习空间</div>
+      <nav class="nav">
+        <a class="active" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 11 9-8 9 8v9a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1v-9Z"/></svg>今日学习</a>
+        <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5.5A3.5 3.5 0 0 1 7.5 2H20v17H7.5A3.5 3.5 0 0 0 4 22V5.5Z"/><path d="M4 18.5A3.5 3.5 0 0 1 7.5 15H20"/></svg>我的单词本</a>
+        <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V9m6 10V5m6 14v-7m4 7H2" stroke-linecap="round"/></svg>学习记录</a>
+        <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.4.3.6.6.6 1v4c-.1.4-.3.7-.6 1Z"/></svg>家长设置</a>
+      </nav>
+      <div class="sidebar-tip"><b>今日还差 2 分钟</b><p>完成后会获得一枚池塘探索贴纸。</p><div class="mini-bar"><i></i></div></div>
+    </aside>
+
+    <main class="main">
+      <header class="top"><div><small>星期四 · 今日第 4 次练习</small><h1>下午好，小探险家</h1></div><nav class="switcher" aria-label="原型切换"><a href="a-storybook-island.html">A 绘本</a><a href="b-pixel-arcade.html">B 像素</a><a class="active" href="c-learning-dashboard.html">C 现代</a></nav></header>
+
+      <section class="continue-card">
+        <div class="continue-copy"><span class="pill">推荐继续 · 抄写模式</span><h2>从下一片荷叶继续今天的练习</h2><p>本组还有 8 个四年级单词。先看清楚，再准确地打出来，不用着急。</p><button class="primary">继续青蛙跳荷叶 →</button></div>
+        <div class="scene"><span class="music-chip">轻木琴 · 音量 35%</span><span class="hill"></span><span class="lily one"></span><span class="lily two"></span><span class="frog"></span><b class="word">green</b></div>
+      </section>
+
+      <div class="section-head"><h3>其他练习</h3><a href="#">查看全部</a></div>
+      <section class="games">
+        <article class="game-card"><div><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M7 10h1m3 0h1m3 0h2M7 14h10" stroke-linecap="round"/></svg></span><h4>键盘训练营</h4><p>1 分钟找到 F、J 和今天要用的字母。</p><div class="meta">开始热身 →</div></div><div class="mini-visual keys"><i></i><i></i><i></i><i></i><i class="hot"></i><i class="hot"></i><i></i><i></i><i></i></div></article>
+        <article class="game-card orange"><div><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17h16M6 17v-6l3-3 3 3 3-5 3 5v6"/><circle cx="7" cy="20" r="1"/><circle cx="17" cy="20" r="1"/></svg></span><h4>城市追踪战</h4><p>输入正确单词，追回被拿走的城市徽章。</p><div class="meta">最佳记录 72 秒 →</div></div><div class="mini-visual city"><i></i><i></i></div></article>
+      </section>
+    </main>
+
+    <aside class="right">
+      <section class="profile-card"><span class="avatar">小Q</span><div><b>小探险家</b><small>四年级体验词库</small></div><button aria-label="更多">•••</button></section>
+      <section class="right-card"><div class="right-title"><h3>今日目标</h3><span>6 / 8 分钟</span></div><div class="ring-wrap"><div class="ring"><b>68%</b><small>已完成</small></div></div></section>
+      <section class="right-card"><div class="right-title"><h3>本周练习</h3><span>少量多次</span></div><div class="week"><div class="day done"><i style="height:34px"></i>一</div><div class="day done"><i style="height:51px"></i>二</div><div class="day done"><i style="height:43px"></i>三</div><div class="day today"><i style="height:58px"></i>四</div><div class="day"><i style="height:18px"></i>五</div><div class="day"><i style="height:18px"></i>六</div><div class="day"><i style="height:18px"></i>日</div></div></section>
+      <section class="right-card"><div class="right-title"><h3>声音</h3><span>可以随时关闭</span></div><div class="audio-row"><span class="audio-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6.5 9H3v6h3.5L11 19V5Z"/><path d="M15 9c1.2 1.6 1.2 4.4 0 6m3-9c3 3.4 3 8.6 0 12" stroke-linecap="round"/></svg></span><div><b>背景音乐</b><small>轻电子与自然声</small></div><span class="volume"><i></i></span></div></section>
+    </aside>
+  </div>
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QwertLearn 原型 B · 像素街机</title>
+  <style>
+    :root {
+      --night: #10152d;
+      --panel: #1a2142;
+      --panel-2: #252e58;
+      --cyan: #46e3ff;
+      --lime: #a4f04f;
+      --yellow: #ffd84a;
+      --pink: #ff5d9e;
+      --paper: #f7f7e7;
+      --muted: #9ba8ce;
+      --pixel-shadow: 6px 6px 0 #090d20;
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--night); }
+    body {
+      margin: 0; min-width: 1080px; min-height: 100vh; color: var(--paper);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      background:
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px),
+        radial-gradient(circle at 50% -10%, #283b70 0, var(--night) 48%);
+      background-size: 8px 8px, 8px 8px, auto;
+    }
+    body::after {
+      content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 30;
+      background: repeating-linear-gradient(180deg, rgba(255,255,255,.018) 0 1px, rgba(0,0,0,.04) 1px 3px);
+      mix-blend-mode: overlay;
+    }
+    a { color: inherit; text-decoration: none; }
+    .shell { max-width: 1380px; min-height: 100vh; margin: auto; padding: 20px 30px 30px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; border-bottom: 4px solid var(--cyan); padding: 5px 0 17px; }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .brand-cube {
+      width: 48px; height: 48px; display: grid; place-items: center; color: #11172e; background: var(--yellow);
+      border: 4px solid var(--paper); box-shadow: 5px 5px 0 var(--pink); font-size: 24px; font-weight: 1000;
+    }
+    .brand-title { font-size: 23px; font-weight: 900; letter-spacing: 1px; }
+    .brand-sub { display: block; margin-top: 3px; color: var(--cyan); font-size: 10px; letter-spacing: 2px; }
+    .switcher { display: flex; gap: 8px; }
+    .switcher a { padding: 10px 12px; color: var(--muted); border: 2px solid #3b4779; font-size: 11px; font-weight: 800; }
+    .switcher a.active { color: var(--night); background: var(--cyan); border-color: var(--paper); box-shadow: 3px 3px 0 var(--pink); }
+    .header-stats { display: flex; align-items: center; gap: 22px; font-size: 11px; color: var(--muted); }
+    .header-stats b { color: var(--yellow); font-size: 17px; }
+    .sound { display: flex; align-items: end; gap: 3px; height: 22px; }
+    .sound i { width: 4px; background: var(--lime); display: block; animation: none; }
+    .sound i:nth-child(1) { height: 9px; } .sound i:nth-child(2) { height: 18px; } .sound i:nth-child(3) { height: 13px; } .sound i:nth-child(4) { height: 21px; }
+    .marquee {
+      margin-top: 18px; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 24px;
+      padding: 20px 24px; background: var(--panel); border: 4px solid #3a4779; box-shadow: var(--pixel-shadow); position: relative;
+    }
+    .marquee::before, .marquee::after { content: ""; position: absolute; width: 10px; height: 10px; background: var(--yellow); top: 10px; }
+    .marquee::before { left: 10px; } .marquee::after { right: 10px; }
+    .kicker { color: var(--lime); font-size: 11px; letter-spacing: 2px; }
+    h1 { margin: 8px 0 5px; font-size: 33px; line-height: 1.15; text-shadow: 4px 4px 0 #11162d; letter-spacing: 1px; }
+    .marquee p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .goal { width: 265px; padding: 14px; border: 3px solid var(--yellow); background: #11172f; }
+    .goal-top { display: flex; justify-content: space-between; font-size: 11px; color: var(--yellow); }
+    .pixel-bar { height: 18px; margin-top: 10px; padding: 3px; border: 2px solid var(--paper); background: #080d1f; }
+    .pixel-bar i { display: block; width: 67%; height: 100%; background: repeating-linear-gradient(90deg, var(--lime) 0 12px, #6baf3b 12px 15px); }
+    .section-label { margin: 26px 0 12px; display: flex; align-items: center; gap: 10px; color: var(--cyan); font-size: 12px; letter-spacing: 2px; }
+    .section-label::before { content: ">"; color: var(--pink); font-weight: 900; }
+    .arcade-grid { display: grid; grid-template-columns: .82fr 1.15fr 1.15fr; gap: 18px; }
+    .game-card {
+      min-height: 380px; padding: 15px; background: var(--panel); border: 4px solid #3b477a; box-shadow: var(--pixel-shadow); position: relative;
+      display: flex; flex-direction: column;
+    }
+    .game-card.recommended { border-color: var(--lime); }
+    .game-card.chase { border-color: var(--pink); }
+    .screen { height: 180px; position: relative; overflow: hidden; border: 4px solid #080d1f; background: #161d3b; image-rendering: pixelated; }
+    .screen::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 0 25px rgba(0,0,0,.45); pointer-events: none; }
+    .camp-screen { background: linear-gradient(#24305d 0 58%, #151b37 58%); }
+    .keyboard { position: absolute; left: 18px; right: 18px; bottom: 20px; display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; }
+    .key { height: 20px; border: 2px solid #7c8bbd; background: #303a69; box-shadow: 2px 2px #080d1f; }
+    .key.hot { background: var(--yellow); border-color: #fff0a1; }
+    .hands { position: absolute; width: 55px; height: 20px; bottom: 5px; background: #ffbd83; border: 3px solid #8f5035; }
+    .hands.left { left: 61px; transform: skewX(20deg); } .hands.right { right: 61px; transform: skewX(-20deg); }
+    .pond-screen { background: linear-gradient(#296e83 0 55%, #287a72 55%); }
+    .cloud-px { position: absolute; width: 50px; height: 12px; background: #d8f6ff; top: 19px; left: 18px; box-shadow: 12px -9px #d8f6ff, 27px 2px #d8f6ff; }
+    .lily-px { position: absolute; width: 76px; height: 21px; background: var(--lime); border: 4px solid #3c7832; }
+    .lily-px.one { left: 25px; bottom: 31px; } .lily-px.two { left: 150px; bottom: 78px; } .lily-px.three { right: 23px; bottom: 126px; }
+    .lily-px b { position: absolute; inset: 1px; text-align: center; color: #102234; font-size: 10px; }
+    .frog-px { position: absolute; left: 46px; bottom: 52px; width: 31px; height: 25px; background: #8be35b; border: 4px solid #244c32; box-shadow: -7px -7px 0 -1px #8be35b, 19px -7px 0 -1px #8be35b; }
+    .chase-screen { background: linear-gradient(#3c4167 0 60%, #272947 60%); }
+    .city-line { position: absolute; left: 0; right: 0; bottom: 40%; display: flex; align-items: end; gap: 5px; padding: 0 9px; }
+    .city-line i { display: block; width: 34px; background: #59658e; border: 3px solid #303855; }
+    .city-line i:nth-child(1) { height: 48px; } .city-line i:nth-child(2) { height: 73px; } .city-line i:nth-child(3) { height: 57px; } .city-line i:nth-child(4) { height: 86px; } .city-line i:nth-child(5) { height: 42px; }
+    .road-px { position: absolute; left: 0; right: 0; bottom: 0; height: 61px; background: #11162e; border-top: 5px solid #69739a; }
+    .road-px::after { content: ""; position: absolute; left: 0; right: 0; top: 28px; height: 4px; background: repeating-linear-gradient(90deg, var(--yellow) 0 24px, transparent 24px 42px); }
+    .cop-px, .thief-px { position: absolute; bottom: 48px; width: 28px; height: 32px; border: 4px solid #12162b; z-index: 2; }
+    .cop-px { left: 47px; background: var(--cyan); box-shadow: 0 -13px 0 -2px #f4bc82; }
+    .thief-px { right: 48px; background: var(--pink); box-shadow: 0 -13px 0 -2px #f4bc82; }
+    .distance { position: absolute; left: 14px; right: 14px; top: 12px; height: 12px; border: 2px solid var(--paper); background: #11162e; z-index: 3; }
+    .distance i { display: block; width: 64%; height: 100%; background: var(--pink); }
+    .card-tag { align-self: flex-start; margin-top: 14px; padding: 6px 8px; color: var(--night); font-size: 10px; font-weight: 900; background: var(--yellow); }
+    .game-card.recommended .card-tag { background: var(--lime); } .game-card.chase .card-tag { background: var(--pink); color: #fff; }
+    .game-card h2 { margin: 12px 0 6px; font-size: 21px; letter-spacing: 1px; }
+    .game-card p { margin: 0; min-height: 42px; color: var(--muted); font-size: 11px; line-height: 1.55; }
+    .card-bottom { margin-top: auto; display: flex; align-items: end; justify-content: space-between; padding-top: 15px; border-top: 2px dashed #46517f; }
+    .card-bottom small { display: block; margin-bottom: 4px; color: var(--muted); font-size: 9px; }
+    .card-bottom strong { color: var(--cyan); font-size: 13px; }
+    .start-btn { padding: 10px 12px; border: 3px solid var(--paper); color: var(--night); background: var(--yellow); box-shadow: 3px 3px 0 #080d1f; font: 900 11px ui-monospace, monospace; }
+    .recommended .start-btn { background: var(--lime); } .chase .start-btn { color: #fff; background: var(--pink); }
+    .footer-strip { margin-top: 21px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    .mini { padding: 13px 15px; border: 3px solid #36416e; background: rgba(26,33,66,.83); display: flex; justify-content: space-between; align-items: center; }
+    .mini span { color: var(--muted); font-size: 10px; } .mini b { color: var(--yellow); font-size: 17px; }
+    @media (max-width: 1130px) { .shell { padding-inline: 18px; } .game-card { min-height: 400px; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-cube">Q</span><div><span class="brand-title">QWERTLEARN</span><span class="brand-sub">WORD QUEST SYSTEM</span></div></div>
+      <nav class="switcher" aria-label="原型切换"><a href="a-storybook-island.html">A 绘本</a><a class="active" href="b-pixel-arcade.html">B 像素</a><a href="c-learning-dashboard.html">C 现代</a></nav>
+      <div class="header-stats"><span>PLAYER <b>小Q</b></span><span>STREAK <b>04</b></span><span class="sound" aria-label="音乐已开启"><i></i><i></i><i></i><i></i></span></div>
+    </header>
+
+    <section class="marquee">
+      <div><span class="kicker">MISSION SELECT // TODAY 06:00 / 08:00</span><h1>选择任务，输入单词，开始冒险！</h1><p>先完成键盘热身，再挑战两个游戏。准确输入会积累能量，错误也可以继续修正。</p></div>
+      <div class="goal"><div class="goal-top"><span>DAILY POWER</span><b>67%</b></div><div class="pixel-bar"><i></i></div></div>
+    </section>
+
+    <div class="section-label">SELECT YOUR MISSION</div>
+    <section class="arcade-grid">
+      <article class="game-card">
+        <div class="screen camp-screen">
+          <div class="keyboard">
+            <i class="key"></i><i class="key"></i><i class="key"></i><i class="key"></i><i class="key"></i><i class="key"></i><i class="key"></i><i class="key"></i><i class="key"></i><i class="key"></i>
+            <i class="key"></i><i class="key"></i><i class="key"></i><i class="key hot"></i><i class="key"></i><i class="key"></i><i class="key hot"></i><i class="key"></i><i class="key"></i><i class="key"></i>
+            <i class="key"></i><i class="key"></i><i class="key"></i><i class="key"></i><i class="key"></i><i class="key"></i><i class="key"></i><i class="key"></i><i class="key"></i><i class="key"></i>
+          </div><i class="hands left"></i><i class="hands right"></i>
+        </div>
+        <span class="card-tag">WARM UP · 01 MIN</span><h2>键盘训练营</h2><p>找到 F 和 J，完成今天的手指热身。</p>
+        <div class="card-bottom"><div><small>MUSIC</small><strong>SOFT CHIP BEAT</strong></div><button class="start-btn">START →</button></div>
+      </article>
+
+      <article class="game-card recommended">
+        <div class="screen pond-screen"><span class="cloud-px"></span><i class="lily-px one"><b>cat</b></i><i class="lily-px two"><b>book</b></i><i class="lily-px three"><b>green</b></i><span class="frog-px"></span></div>
+        <span class="card-tag">RECOMMENDED · LV.01</span><h2>青蛙跳荷叶</h2><p>输入荷叶上的单词，连续跳跃并刷新最高记录。</p>
+        <div class="card-bottom"><div><small>BEST COMBO</small><strong>18 LEAVES</strong></div><button class="start-btn">PLAY →</button></div>
+      </article>
+
+      <article class="game-card chase">
+        <div class="screen chase-screen"><div class="distance"><i></i></div><div class="city-line"><i></i><i></i><i></i><i></i><i></i></div><div class="road-px"></div><span class="cop-px"></span><span class="thief-px"></span></div>
+        <span class="card-tag">CHASE · BEST 72 SEC</span><h2>城市追踪战</h2><p>每打对一个单词就靠近一步，追回被拿走的城市徽章。</p>
+        <div class="card-bottom"><div><small>MUSIC</small><strong>8-BIT CHASE</strong></div><button class="start-btn">PLAY →</button></div>
+      </article>
+    </section>
+
+    <section class="footer-strip">
+      <div class="mini"><span>WORDS MASTERED</span><b>024</b></div><div class="mini"><span>ACCURACY TODAY</span><b>91%</b></div><div class="mini"><span>AUDIO</span><b>ON / 35%</b></div>
+    </section>
+  </main>
+</body>
+</html>
