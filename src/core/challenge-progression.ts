@@ -3,6 +3,8 @@ import type { DifficultyProfile } from './models'
 export const WORDS_PER_STAGE = 8
 export const FROG_RULES_VERSION = '1.3.0'
 export const CHASE_RULES_VERSION = '1.3.0'
+export const MATCH_RULES_VERSION = '1.0.0'
+export const MATCH_FINAL_STAGE = 3
 export const CHASE_RUN_DURATION_MS = 90_000
 export const CHASE_START_DISTANCE = 100
 export const CHASE_MAX_DISTANCE = 160
@@ -21,6 +23,14 @@ export interface ChaseStageRules {
   startingDistance: number
   catchDistance: number
   districtTheme: number
+}
+
+export interface MatchStageRules {
+  stageLevel: 1 | 2 | 3
+  pairCount: 4 | 6 | 8
+  maxWordDifficulty: 2 | 3 | 5
+  roundDurationMs: number | null
+  label: '萌芽' | '开花' | '盛放'
 }
 
 function positiveStage(stageLevel: number): number {
@@ -86,4 +96,15 @@ export function chaseWordGain(wordLength: number, streak: number, stageLevel: nu
   const lengthBonus = Math.max(0, wordLength) * 1.4
   const streakBonus = Math.min(8, Math.max(0, streak - 1) * 1.2)
   return Math.round(stage.catchDistance + lengthBonus + streakBonus)
+}
+
+export function getMatchStageRules(stageLevel: number): MatchStageRules {
+  const stage = Math.min(MATCH_FINAL_STAGE, positiveStage(stageLevel)) as 1 | 2 | 3
+  if (stage === 1) {
+    return { stageLevel: 1, pairCount: 4, maxWordDifficulty: 2, roundDurationMs: null, label: '萌芽' }
+  }
+  if (stage === 2) {
+    return { stageLevel: 2, pairCount: 6, maxWordDifficulty: 3, roundDurationMs: 120_000, label: '开花' }
+  }
+  return { stageLevel: 3, pairCount: 8, maxWordDifficulty: 5, roundDurationMs: 90_000, label: '盛放' }
 }

@@ -6,6 +6,9 @@ export type AudioEventId =
   | 'frog.rescue'
   | 'chase.step'
   | 'chase.catch'
+  | 'match.correct'
+  | 'match.wrong'
+  | 'match.clear'
   | 'run.success'
   | 'run.failure'
   | 'level.up'
@@ -42,6 +45,9 @@ const EVENT_TONES: Record<AudioEventId, { channel: AudioChannel; frequency: numb
   'frog.rescue': { channel: 'sfx', frequency: 260, duration: 0.18 },
   'chase.step': { channel: 'sfx', frequency: 520, duration: 0.08 },
   'chase.catch': { channel: 'sfx', frequency: 780, duration: 0.22 },
+  'match.correct': { channel: 'sfx', frequency: 700, duration: 0.08 },
+  'match.wrong': { channel: 'sfx', frequency: 220, duration: 0.1 },
+  'match.clear': { channel: 'sfx', frequency: 820, duration: 0.2 },
   'run.success': { channel: 'sfx', frequency: 720, duration: 0.25 },
   'run.failure': { channel: 'sfx', frequency: 250, duration: 0.2 },
   'level.up': { channel: 'sfx', frequency: 860, duration: 0.18 },

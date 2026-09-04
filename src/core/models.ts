@@ -1,4 +1,4 @@
-export type GameId = 'training' | 'frog' | 'chase'
+export type GameId = 'training' | 'frog' | 'chase' | 'match'
 export type LearningMode = 'key' | 'copy' | 'recall' | 'dictation' | 'review'
 
 export interface WordEntry {
@@ -67,20 +67,26 @@ export interface RunRewardBreakdown {
   total: number
 }
 
-export const EXPERIENCE_WORDS: WordEntry[] = [
-  { id: 'exp-cat', text: 'cat', meaning: '猫', grade: 4, unit: '体验词库', difficulty: 1, tags: ['animal', 'short'] },
-  { id: 'exp-book', text: 'book', meaning: '书', grade: 4, unit: '体验词库', difficulty: 1, tags: ['school'] },
-  { id: 'exp-green', text: 'green', meaning: '绿色', grade: 4, unit: '体验词库', difficulty: 2, tags: ['color'] },
-  { id: 'exp-frog', text: 'frog', meaning: '青蛙', grade: 4, unit: '体验词库', difficulty: 1, tags: ['animal'] },
-  { id: 'exp-river', text: 'river', meaning: '河流', grade: 4, unit: '体验词库', difficulty: 2, tags: ['nature'] },
-  { id: 'exp-jump', text: 'jump', meaning: '跳跃', grade: 4, unit: '体验词库', difficulty: 1, tags: ['action'] },
-  { id: 'exp-school', text: 'school', meaning: '学校', grade: 4, unit: '体验词库', difficulty: 2, tags: ['school'] },
-  { id: 'exp-friend', text: 'friend', meaning: '朋友', grade: 4, unit: '体验词库', difficulty: 2, tags: ['people'] },
-  { id: 'exp-yellow', text: 'yellow', meaning: '黄色', grade: 4, unit: '体验词库', difficulty: 2, tags: ['color'] },
-  { id: 'exp-window', text: 'window', meaning: '窗户', grade: 4, unit: '体验词库', difficulty: 2, tags: ['home'] },
-  { id: 'exp-teacher', text: 'teacher', meaning: '老师', grade: 4, unit: '体验词库', difficulty: 3, tags: ['people', 'school'] },
-  { id: 'exp-morning', text: 'morning', meaning: '早晨', grade: 4, unit: '体验词库', difficulty: 3, tags: ['time'] },
-]
+export {
+  EXPERIENCE_WORDS,
+  GRADE_4_WORDS,
+  GRADE_4_WORD_PACK_ID,
+  GRADE_4_WORD_PACK_NAME,
+  GRADE_4_WORD_PACK_VERSION,
+  WORD_SESSION_BATCH_SIZE,
+} from './grade-4-word-bank'
+
+export {
+  ALL_VOCABULARY_WORDS,
+  DEFAULT_VOCABULARY_LEVEL,
+  getVocabularyLevel,
+  GRADE_5_WORDS,
+  GRADE_6_WORDS,
+  JUNIOR_PREP_WORDS,
+  VOCABULARY_LEVELS,
+  type VocabularyLevelDefinition,
+  type VocabularyLevelId,
+} from './progressive-word-bank'
 
 export interface DifficultyProfile {
   speedTier: 1 | 2 | 3 | 4 | 5
@@ -190,6 +196,7 @@ export interface DashboardSummary {
   rewardState: RewardState
   highestFrogStage: number
   highestChaseStage: number
+  highestMatchStage: number
   totalMinutes: number
   todayMinutes: number
   accuracy: number
@@ -216,6 +223,7 @@ export const EMPTY_DASHBOARD: DashboardSummary = {
   },
   highestFrogStage: 0,
   highestChaseStage: 0,
+  highestMatchStage: 0,
   totalMinutes: 0,
   todayMinutes: 0,
   accuracy: 1,

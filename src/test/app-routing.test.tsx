@@ -73,6 +73,10 @@ describe('App routing', () => {
     fireEvent(window, new HashChangeEvent('hashchange'))
     await waitFor(() => expect(screen.getByText('game-page:frog')).toBeInTheDocument())
 
+    window.location.hash = '#/match'
+    fireEvent(window, new HashChangeEvent('hashchange'))
+    await waitFor(() => expect(screen.getByText('game-page:match')).toBeInTheDocument())
+
     window.location.hash = '#/rewards'
     fireEvent(window, new HashChangeEvent('hashchange'))
     await waitFor(() => expect(screen.getByText('rewards-page')).toBeInTheDocument())

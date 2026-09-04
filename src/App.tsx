@@ -8,11 +8,11 @@ import { ParentDashboard } from './pages/ParentDashboard'
 import { RewardCabinetPage } from './pages/RewardCabinetPage'
 import { WordBookPage } from './pages/WordBookPage'
 
-export type AppRoute = 'home' | 'training' | 'frog' | 'chase' | 'wordbook' | 'rewards' | 'parent'
+export type AppRoute = 'home' | 'training' | 'frog' | 'chase' | 'match' | 'wordbook' | 'rewards' | 'parent'
 
 function readRoute(): AppRoute {
   const value = window.location.hash.replace(/^#\/?/, '')
-  return ['training', 'frog', 'chase', 'wordbook', 'rewards', 'parent'].includes(value)
+  return ['training', 'frog', 'chase', 'match', 'wordbook', 'rewards', 'parent'].includes(value)
     ? value as AppRoute
     : 'home'
 }

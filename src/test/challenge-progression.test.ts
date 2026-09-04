@@ -5,6 +5,7 @@ import {
   getChaseStageRules,
   getFrogRoundDurationMs,
   getFrogStageRules,
+  getMatchStageRules,
   stageForCompletedWords,
   wordsIntoStage,
 } from '../core/challenge-progression'
@@ -37,6 +38,19 @@ describe('challenge progression', () => {
     expect(endlessDifficultyForStage(INITIAL_DIFFICULTY, 7)).toMatchObject({ speedTier: 4, hintLevel: 0 })
     expect(endlessDifficultyForStage({ speedTier: 5, hintLevel: 0, recentAccuracy: 0.7 }, 2))
       .toMatchObject({ speedTier: 5, hintLevel: 0, recentAccuracy: 0.7 })
+  })
+
+  it('progresses the Word Garden from 4 untimed pairs to 8 timed pairs', () => {
+    expect(getMatchStageRules(1)).toEqual({
+      stageLevel: 1,
+      pairCount: 4,
+      maxWordDifficulty: 2,
+      roundDurationMs: null,
+      label: '萌芽',
+    })
+    expect(getMatchStageRules(2)).toMatchObject({ pairCount: 6, maxWordDifficulty: 3, roundDurationMs: 120_000 })
+    expect(getMatchStageRules(3)).toMatchObject({ pairCount: 8, maxWordDifficulty: 5, roundDurationMs: 90_000 })
+    expect(getMatchStageRules(99)).toEqual(getMatchStageRules(3))
   })
 
   it('builds six repeating districts with bounded target speed and useful word gains', () => {

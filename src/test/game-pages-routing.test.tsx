@@ -6,6 +6,7 @@ import { GamePages } from '../pages/GamePages'
 vi.mock('../pages/FrogGamePage', () => ({ FrogGamePage: () => <p>frog-component</p> }))
 vi.mock('../pages/ChaseGamePage', () => ({ ChaseGamePage: () => <p>chase-component</p> }))
 vi.mock('../pages/TrainingPage', () => ({ TrainingPage: () => <p>training-component</p> }))
+vi.mock('../pages/MatchGamePage', () => ({ MatchGamePage: () => <p>match-component</p> }))
 
 const audioSettings: AudioSettings = { muted: false, music: 0.35, sfx: 0.7, voice: 1, ui: 0.5 }
 const sharedProps = {
@@ -28,5 +29,8 @@ describe('GamePages', () => {
 
     view.rerender(<GamePages route="chase" {...sharedProps} />)
     expect(screen.getByText('chase-component')).toBeInTheDocument()
+
+    view.rerender(<GamePages route="match" {...sharedProps} />)
+    expect(screen.getByText('match-component')).toBeInTheDocument()
   })
 })

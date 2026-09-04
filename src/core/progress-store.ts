@@ -1,8 +1,8 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
 import {
+  ALL_VOCABULARY_WORDS,
   buildLeaderboardKey,
   EMPTY_DASHBOARD,
-  EXPERIENCE_WORDS,
   type DashboardSummary,
   type GameId,
   type RewardDefinition,
@@ -254,7 +254,7 @@ export class ProgressStore {
 
   async getLeaderboard(boardKey: string, limit = 10): Promise<RunResult[]> {
     const gameId = boardKey.split(':', 1)[0] as GameId
-    const runs = ['training', 'frog', 'chase'].includes(gameId)
+    const runs = ['training', 'frog', 'chase', 'match'].includes(gameId)
       ? await this.listRunsByGame(gameId)
       : await this.listRuns()
     return runs
@@ -268,7 +268,7 @@ export class ProgressStore {
     if (runs.length === 0) return { ...EMPTY_DASHBOARD, rewardState }
 
     const words = new Set(runs.flatMap((run) => run.words))
-    const wordMemory = buildWordMemory(runs, EXPERIENCE_WORDS)
+    const wordMemory = buildWordMemory(runs, ALL_VOCABULARY_WORDS)
     const correctCharacters = runs.reduce((sum, run) => sum + run.correctCharacters, 0)
     const mistakes = runs.reduce((sum, run) => sum + run.mistakes, 0)
     const practiceDates = new Set(runs.map((run) => new Date(run.completedAt).toDateString()))
@@ -297,6 +297,9 @@ export class ProgressStore {
         .reduce((highest, run) => Math.max(highest, run.highestStage ?? 1), 0),
       highestChaseStage: runs
         .filter((run) => run.gameId === 'chase')
+        .reduce((highest, run) => Math.max(highest, run.highestStage ?? 1), 0),
+      highestMatchStage: runs
+        .filter((run) => run.gameId === 'match')
         .reduce((highest, run) => Math.max(highest, run.highestStage ?? 1), 0),
       totalMinutes: Math.round(runs.reduce((sum, run) => sum + run.durationMs, 0) / 60_000),
       todayMinutes: Math.round(todayRuns.reduce((sum, run) => sum + run.durationMs, 0) / 60_000),

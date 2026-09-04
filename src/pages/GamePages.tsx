@@ -3,6 +3,7 @@ import type { RewardSlot, WordMemory } from '../core/models'
 import type { AppRoute } from '../App'
 import { ChaseGamePage } from './ChaseGamePage'
 import { FrogGamePage } from './FrogGamePage'
+import { MatchGamePage } from './MatchGamePage'
 import { TrainingPage } from './TrainingPage'
 
 interface GamePagesProps {
@@ -19,5 +20,6 @@ interface GamePagesProps {
 export function GamePages({ route, wordMemory, highestFrogStage, equippedRewards, ...props }: GamePagesProps) {
   if (route === 'frog') return <FrogGamePage {...props} wordMemory={wordMemory} highestUnlockedStage={highestFrogStage} equippedRewards={equippedRewards} />
   if (route === 'chase') return <ChaseGamePage {...props} wordMemory={wordMemory} equippedRewards={equippedRewards} />
+  if (route === 'match') return <MatchGamePage {...props} wordMemory={wordMemory} />
   return <TrainingPage {...props} />
 }

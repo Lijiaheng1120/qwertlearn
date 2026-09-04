@@ -15,6 +15,7 @@ import {
   createRunId,
   EXPERIENCE_WORDS,
   INITIAL_DIFFICULTY,
+  WORD_SESSION_BATCH_SIZE,
   type RewardSlot,
   type RunResult,
   type RunRewardBreakdown,
@@ -49,7 +50,7 @@ export function ChaseGamePage({
 }: ChaseGamePageProps) {
   const wordMemoryKey = wordMemory.map((word) => `${word.wordId}:${word.lastPracticedAt}:${word.needsReview}`).join('|')
   const createQueue = useCallback((avoidWordId?: string) => {
-    const queue = createWordSession(EXPERIENCE_WORDS, wordMemory, { length: EXPERIENCE_WORDS.length })
+    const queue = createWordSession(EXPERIENCE_WORDS, wordMemory, { length: WORD_SESSION_BATCH_SIZE })
     if (avoidWordId && queue[0]?.id === avoidWordId) {
       const replacementIndex = queue.findIndex((word) => word.id !== avoidWordId)
       if (replacementIndex > 0) [queue[0], queue[replacementIndex]] = [queue[replacementIndex], queue[0]]
@@ -57,7 +58,7 @@ export function ChaseGamePage({
     return queue
   }, [wordMemoryKey])
 
-  const [sessionWords, setSessionWords] = useState(() => createWordSession(EXPERIENCE_WORDS, wordMemory, { length: EXPERIENCE_WORDS.length }))
+  const [sessionWords, setSessionWords] = useState(() => createWordSession(EXPERIENCE_WORDS, wordMemory, { length: WORD_SESSION_BATCH_SIZE }))
   const [wordIndex, setWordIndex] = useState(0)
   const [distance, setDistance] = useState(CHASE_START_DISTANCE)
   const [remainingMs, setRemainingMs] = useState(CHASE_RUN_DURATION_MS)
@@ -129,7 +130,7 @@ export function ChaseGamePage({
       id: createRunId('chase'),
       gameId: 'chase',
       mode: 'copy',
-      wordPackId: 'experience-grade-4',
+      wordPackId: 'fltrp-grade4-v1',
       difficulty: difficultyRef.current.speedTier,
       speedTier: difficultyRef.current.speedTier,
       rulesVersion: CHASE_RULES_VERSION,

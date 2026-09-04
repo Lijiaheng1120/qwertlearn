@@ -3,14 +3,16 @@ import { relative, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const sourceRoot = resolve(process.cwd(), 'src')
-const gamePages = [
+const keyboardGamePages = [
   'pages/TrainingPage.tsx',
   'pages/FrogGamePage.tsx',
   'pages/ChaseGamePage.tsx',
 ] as const
+const gamePages = [...keyboardGamePages, 'pages/MatchGamePage.tsx'] as const
 const vocabularyGamePages = [
   'pages/FrogGamePage.tsx',
   'pages/ChaseGamePage.tsx',
+  'pages/MatchGamePage.tsx',
 ] as const
 
 function readSource(relativePath: string): string {
@@ -56,7 +58,7 @@ describe('production architecture contracts', () => {
     expect(progressStore).toContain('requestFamilyRewardState')
   })
 
-  it.each(gamePages)('%s consumes every required shared game service', (page) => {
+  it.each(keyboardGamePages)('%s consumes the shared Typing Session and game services', (page) => {
     const source = readSource(page)
 
     expect(source).toContain("from '../core/use-typing-session'")
@@ -66,6 +68,17 @@ describe('production architecture contracts', () => {
     expect(source).toContain("from '../core/audio-service'")
     expect(source).toMatch(/audioService\.(?:play|speak)\(/)
     expect(source).toMatch(/rulesVersion: (?:'1\.2\.0'|FROG_RULES_VERSION|CHASE_RULES_VERSION)/)
+  })
+
+  it('keeps the pointer-driven match game on the shared Match Session boundary', () => {
+    const source = readSource('pages/MatchGamePage.tsx')
+    expect(source).toContain("from '../core/use-match-session'")
+    expect(source).toMatch(/useMatchSession\(/)
+    expect(source).toContain("from '../core/progress-store'")
+    expect(source).toMatch(/progressStore\.saveRun\(/)
+    expect(source).toContain("from '../core/audio-service'")
+    expect(source).toMatch(/audioService\.(?:play|speak)\(/)
+    expect(source).toMatch(/rulesVersion: MATCH_RULES_VERSION/)
   })
 
   it.each(vocabularyGamePages)('%s uses the shared randomized word session', (page) => {

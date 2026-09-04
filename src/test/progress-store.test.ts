@@ -73,6 +73,7 @@ describe('ProgressStore', () => {
     expect(summary.rewardState.settledRunIds).toHaveLength(1)
     expect(summary.highestFrogStage).toBe(1)
     expect(summary.highestChaseStage).toBe(0)
+    expect(summary.highestMatchStage).toBe(0)
   })
 
   it('falls back to instance-local memory when IndexedDB is unavailable', async () => {
@@ -161,6 +162,36 @@ describe('ProgressStore', () => {
 
     const board = await store.getLeaderboard(buildLeaderboardKey(base))
     expect(board.map((run) => run.id)).toEqual(['frog-high', 'frog-low'])
+  })
+
+  it('persists advanced matching runs and aggregates their stage and word memory', async () => {
+    const store = createStore()
+    const matchRun = createRun({
+      id: 'match-grade5',
+      gameId: 'match',
+      mode: 'recall',
+      wordPackId: 'fltrp-grade5-v1',
+      rulesVersion: '1.0.0',
+      highestStage: 3,
+      correctWords: 1,
+      correctCharacters: 1,
+      mistakes: 1,
+      words: ['airport'],
+      wordIds: ['g5-airport'],
+      mistakeWordIds: ['g5-airport'],
+      score: 900,
+    })
+    await store.saveRun(matchRun)
+
+    expect((await store.listRunsByGame('match')).map((run) => run.id)).toEqual(['match-grade5'])
+    expect((await store.getLeaderboard(buildLeaderboardKey(matchRun))).map((run) => run.id)).toEqual(['match-grade5'])
+    const summary = await store.getDashboardSummary()
+    expect(summary.highestMatchStage).toBe(3)
+    expect(summary.wordMemory).toContainEqual(expect.objectContaining({
+      wordId: 'g5-airport',
+      mistakeCount: 1,
+      needsReview: true,
+    }))
   })
 
   it('orders successful chase runs by active time and failed runs by remaining distance', async () => {

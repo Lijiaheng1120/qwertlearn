@@ -16,6 +16,7 @@ import {
   createRunId,
   EXPERIENCE_WORDS,
   INITIAL_DIFFICULTY,
+  WORD_SESSION_BATCH_SIZE,
   type ChallengeMode,
   type RewardSlot,
   type RunResult,
@@ -58,7 +59,7 @@ export function FrogGamePage({
 }: FrogGamePageProps) {
   const wordMemoryKey = wordMemory.map((word) => `${word.wordId}:${word.lastPracticedAt}:${word.needsReview}`).join('|')
   const createQueue = useCallback((avoidWordId?: string) => {
-    const queue = createWordSession(EXPERIENCE_WORDS, wordMemory, { length: EXPERIENCE_WORDS.length })
+    const queue = createWordSession(EXPERIENCE_WORDS, wordMemory, { length: WORD_SESSION_BATCH_SIZE })
     if (avoidWordId && queue[0]?.id === avoidWordId) {
       const replacementIndex = queue.findIndex((word) => word.id !== avoidWordId)
       if (replacementIndex > 0) [queue[0], queue[replacementIndex]] = [queue[replacementIndex], queue[0]]
@@ -66,7 +67,7 @@ export function FrogGamePage({
     return queue
   }, [wordMemoryKey])
 
-  const [sessionWords, setSessionWords] = useState(() => createWordSession(EXPERIENCE_WORDS, wordMemory, { length: EXPERIENCE_WORDS.length }))
+  const [sessionWords, setSessionWords] = useState(() => createWordSession(EXPERIENCE_WORDS, wordMemory, { length: WORD_SESSION_BATCH_SIZE }))
   const [wordIndex, setWordIndex] = useState(0)
   const [lives, setLives] = useState(3)
   const [streak, setStreak] = useState(0)
@@ -195,7 +196,7 @@ export function FrogGamePage({
       id: createRunId('frog'),
       gameId: 'frog',
       mode: 'copy',
-      wordPackId: 'experience-grade-4',
+      wordPackId: 'fltrp-grade4-v1',
       difficulty: difficultyRef.current.speedTier,
       speedTier: difficultyRef.current.speedTier,
       rulesVersion: FROG_RULES_VERSION,
