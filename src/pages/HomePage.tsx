@@ -27,6 +27,7 @@ export function HomePage({ summary, audioSettings, navigate, toggleAudio }: Home
           <button className="active" onClick={() => navigate('home')}>冒险地图</button>
           <button onClick={() => navigate('training')}>键位训练</button>
           <button onClick={() => navigate('wordbook')}>我的单词本</button>
+          <button onClick={() => navigate('rewards')}>成长奖励</button>
           <button onClick={() => navigate('parent')}>学习记录</button>
         </nav>
 
@@ -87,6 +88,16 @@ export function HomePage({ summary, audioSettings, navigate, toggleAudio }: Home
             <p>准确输入每个单词，一点一点追回城市徽章。</p>
             <span className="location-cta">开始城市任务 <b><Icon name="arrow" /></b></span>
           </button>
+        </section>
+
+        <section className="home-reward-entry" aria-label="成长奖励概览">
+          <span className="reward-entry-art" aria-hidden="true">🎒</span>
+          <div>
+            <small>成长岛奖励柜</small>
+            <h2>你有 {summary.rewardState.balance} 冒险积分</h2>
+            <p>青蛙最高阶段 {summary.highestFrogStage} · 城市最高街区 {summary.highestChaseStage}。积分可以换外观，也可以提交家庭愿望。</p>
+          </div>
+          <button onClick={() => navigate('rewards')}>打开奖励柜 <Icon name="arrow" /></button>
         </section>
 
         <section className="home-stats" aria-label="学习概览">

@@ -5,13 +5,14 @@ import { progressStore } from './core/progress-store'
 import { GamePages } from './pages/GamePages'
 import { HomePage } from './pages/HomePage'
 import { ParentDashboard } from './pages/ParentDashboard'
+import { RewardCabinetPage } from './pages/RewardCabinetPage'
 import { WordBookPage } from './pages/WordBookPage'
 
-export type AppRoute = 'home' | 'training' | 'frog' | 'chase' | 'wordbook' | 'parent'
+export type AppRoute = 'home' | 'training' | 'frog' | 'chase' | 'wordbook' | 'rewards' | 'parent'
 
 function readRoute(): AppRoute {
   const value = window.location.hash.replace(/^#\/?/, '')
-  return ['training', 'frog', 'chase', 'wordbook', 'parent'].includes(value)
+  return ['training', 'frog', 'chase', 'wordbook', 'rewards', 'parent'].includes(value)
     ? value as AppRoute
     : 'home'
 }
@@ -77,6 +78,18 @@ export function App() {
     )
   }
 
+  if (route === 'rewards') {
+    return (
+      <RewardCabinetPage
+        summary={summary}
+        audioSettings={audioSettings}
+        navigate={navigate}
+        toggleAudio={toggleAudio}
+        onRewardChanged={refreshSummary}
+      />
+    )
+  }
+
   if (route === 'parent') {
     return (
       <ParentDashboard
@@ -84,6 +97,7 @@ export function App() {
         audioSettings={audioSettings}
         navigate={navigate}
         toggleAudio={toggleAudio}
+        onRewardChanged={refreshSummary}
       />
     )
   }
@@ -92,6 +106,8 @@ export function App() {
     <GamePages
       route={route}
       wordMemory={summary.wordMemory}
+      highestFrogStage={summary.highestFrogStage}
+      equippedRewards={summary.rewardState.equippedRewards}
       audioSettings={audioSettings}
       navigate={navigate}
       toggleAudio={toggleAudio}

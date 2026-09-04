@@ -5,14 +5,18 @@ import {
   EXPERIENCE_WORDS,
   type DashboardSummary,
   type GameId,
+  type RewardDefinition,
   type RewardState,
   type RunResult,
+  type RunRewardBreakdown,
 } from './models'
 import {
   calculateRunAdventurePoints,
+  calculateRunRewardBreakdown,
   createEmptyRewardState,
   mergeRewardStates,
   normalizeRewardState,
+  REWARD_CATALOG,
   REWARD_RULES_VERSION,
   REWARD_STATE_ID,
   redeemCosmeticReward,
@@ -20,6 +24,7 @@ import {
   resolveFamilyReward as resolveFamilyRewardState,
   RewardRuleError,
   settleRunReward,
+  spendableAdventurePoints,
 } from './reward-system'
 import { buildWordMemory } from './word-session'
 
@@ -101,6 +106,18 @@ export class ProgressStore {
   private databasePromise: Promise<IDBPDatabase<QwertLearnDatabase>> | null = null
 
   constructor(private readonly databaseName = DATABASE_NAME) {}
+
+  previewRunReward(run: RunResult): RunRewardBreakdown {
+    return calculateRunRewardBreakdown(run)
+  }
+
+  getRewardCatalog(): readonly RewardDefinition[] {
+    return REWARD_CATALOG
+  }
+
+  getSpendableAdventurePoints(state: RewardState): number {
+    return spendableAdventurePoints(state)
+  }
 
   private getDatabase(): Promise<IDBPDatabase<QwertLearnDatabase>> {
     this.databasePromise ??= openDB<QwertLearnDatabase>(this.databaseName, DATABASE_VERSION, {

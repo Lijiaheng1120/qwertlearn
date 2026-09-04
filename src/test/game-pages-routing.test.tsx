@@ -11,6 +11,8 @@ const audioSettings: AudioSettings = { muted: false, music: 0.35, sfx: 0.7, voic
 const sharedProps = {
   audioSettings,
   wordMemory: [],
+  highestFrogStage: 0,
+  equippedRewards: {},
   navigate: vi.fn(),
   toggleAudio: vi.fn(),
   onRunSaved: vi.fn().mockResolvedValue(undefined),

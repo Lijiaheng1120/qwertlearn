@@ -7,6 +7,8 @@ import { ChaseGamePage } from '../pages/ChaseGamePage'
 import { FrogGamePage, getFrogRoundDurationMs } from '../pages/FrogGamePage'
 import { TrainingPage } from '../pages/TrainingPage'
 
+const frogMockState = vi.hoisted(() => ({ holdJump: false }))
+
 vi.mock('phaser', () => {
   class MockGame {
     canvas: HTMLCanvasElement
@@ -35,11 +37,15 @@ vi.mock('../games/frog/FrogScene', () => {
     private pendingResolve: (() => void) | null = null
 
     setTarget() {}
+    configureStage() {}
+    applyRewards() {}
+    showStageBanner() {}
     showMistake() {}
     showRescue() {}
     resetRun() {}
 
     jumpToNext(): Promise<void> {
+      if (!frogMockState.holdJump) return Promise.resolve()
       return new Promise((resolve) => { this.pendingResolve = resolve })
     }
 
@@ -79,6 +85,7 @@ function setDocumentHidden(hidden: boolean): void {
 }
 
 afterEach(() => {
+  frogMockState.holdJump = false
   vi.useRealTimers()
   vi.restoreAllMocks()
   delete (document as unknown as { hidden?: boolean }).hidden
@@ -137,6 +144,7 @@ describe('FrogGamePage timing and lifecycle', () => {
   })
 
   it('settles an interrupted jump and persists the active run as incomplete', async () => {
+    frogMockState.holdJump = true
     const saveRun = vi.spyOn(progressStore, 'saveRun').mockResolvedValue('indexeddb')
     vi.spyOn(audioService, 'play').mockImplementation(() => {})
     vi.spyOn(audioService, 'speak').mockImplementation(() => {})
@@ -202,7 +210,10 @@ describe('FrogGamePage timing and lifecycle', () => {
       mistakes: 0,
       wordIds: [],
       mistakeWordIds: ['exp-cat', 'exp-book', 'exp-green'],
-      rulesVersion: '1.2.0',
+      rulesVersion: '1.3.0',
+      challengeMode: 'learning',
+      startStage: 1,
+      highestStage: 1,
     })
 
     act(() => vi.advanceTimersByTime(60_000))
@@ -217,6 +228,72 @@ describe('FrogGamePage timing and lifecycle', () => {
     view.unmount()
     await act(async () => Promise.resolve())
     expect(saveRun).toHaveBeenCalledOnce()
+  })
+
+  it('promotes after eight words without auto-settlement and unlocks endless play', async () => {
+    const saveRun = vi.spyOn(progressStore, 'saveRun').mockResolvedValue('indexeddb')
+    vi.spyOn(audioService, 'play').mockImplementation(() => {})
+    vi.spyOn(audioService, 'speak').mockImplementation(() => {})
+    const view = render(
+      <FrogGamePage
+        audioSettings={audioSettings}
+        navigate={vi.fn()}
+        toggleAudio={vi.fn()}
+        onRunSaved={vi.fn().mockResolvedValue(undefined)}
+      />,
+    )
+
+    for (const word of ['cat', 'book', 'green', 'frog', 'river', 'jump', 'school', 'friend']) {
+      await typeWord(word)
+    }
+
+    expect(saveRun).not.toHaveBeenCalled()
+    expect(view.container.querySelector('.game-hud')).toHaveTextContent('阶段 2')
+    expect(view.container.querySelector('.game-hud')).toHaveTextContent('本阶段 0/8')
+    expect(screen.getByRole('button', { name: /无尽挑战/ })).toHaveTextContent('从已解锁阶段 2 开始')
+    expect(screen.getByRole('button', { name: /无尽挑战/ })).toBeDisabled()
+
+    fireEvent.click(screen.getByRole('button', { name: '结束本局并结算' }))
+    await act(async () => Promise.resolve())
+    expect(saveRun).toHaveBeenCalledOnce()
+    expect(saveRun.mock.calls[0][0]).toMatchObject({
+      gameId: 'frog',
+      completed: true,
+      correctWords: 8,
+      challengeMode: 'learning',
+      startStage: 1,
+      highestStage: 2,
+      rulesVersion: '1.3.0',
+    })
+  })
+
+  it('starts endless play from the highest unlocked checkpoint', async () => {
+    const saveRun = vi.spyOn(progressStore, 'saveRun').mockResolvedValue('indexeddb')
+    vi.spyOn(audioService, 'play').mockImplementation(() => {})
+    vi.spyOn(audioService, 'speak').mockImplementation(() => {})
+    render(
+      <FrogGamePage
+        audioSettings={audioSettings}
+        highestUnlockedStage={4}
+        navigate={vi.fn()}
+        toggleAudio={vi.fn()}
+        onRunSaved={vi.fn().mockResolvedValue(undefined)}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /无尽挑战/ }))
+    await typeWord('cat')
+    fireEvent.click(screen.getByRole('button', { name: '结束本局并结算' }))
+    await act(async () => Promise.resolve())
+
+    expect(saveRun).toHaveBeenCalledOnce()
+    expect(saveRun.mock.calls[0][0]).toMatchObject({
+      challengeMode: 'endless',
+      startStage: 4,
+      highestStage: 4,
+      correctWords: 1,
+      rulesVersion: '1.3.0',
+    })
   })
 
   it('shows a storage warning when a failed run falls back to memory', async () => {
@@ -276,6 +353,10 @@ describe('ChaseGamePage timing fairness', () => {
       await typeWord(word)
     }
     await act(async () => Promise.resolve())
+    expect(saveRun).not.toHaveBeenCalled()
+    expect(screen.getByLabelText(/当前街区 2，已追回 1 枚徽章/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '结束巡逻并结算' }))
+    await act(async () => Promise.resolve())
 
     expect(saveRun).toHaveBeenCalledOnce()
     const run = saveRun.mock.calls[0][0]
@@ -283,10 +364,14 @@ describe('ChaseGamePage timing fairness', () => {
       gameId: 'chase',
       completed: true,
       pausedMs: 10_000,
-      remainingDistance: 0,
+      remainingDistance: expect.any(Number),
+      challengeMode: 'endless',
+      startStage: 1,
+      highestStage: 2,
+      badgesRecovered: 1,
       wordIds: ['exp-cat', 'exp-book', 'exp-green', 'exp-frog', 'exp-river', 'exp-jump', 'exp-school', 'exp-friend'],
       mistakeWordIds: [],
-      rulesVersion: '1.2.0',
+      rulesVersion: '1.3.0',
     })
     expect(run.startedAt).toBe(initialTime + 5_000)
     expect(run.durationMs).toBeGreaterThanOrEqual(2_500)
@@ -311,13 +396,14 @@ describe('ChaseGamePage timing fairness', () => {
 
     act(() => vi.advanceTimersByTime(120_000))
     expect(screen.getByText('90', { selector: '.game-hud b' })).toBeInTheDocument()
-    expect(screen.getByLabelText('警察距离目标还有 100 米')).toBeInTheDocument()
+    expect(screen.getByLabelText('巡逻员距离移动目标还有 100 米')).toBeInTheDocument()
     expect(saveRun).not.toHaveBeenCalled()
 
     fireEvent.keyDown(window, { key: 'x' })
     await typeWord('cat')
-    expect(screen.getByLabelText('警察距离目标还有 87 米')).toBeInTheDocument()
-    expect(screen.getByText(/连续正确/)).toHaveTextContent('连续正确 1')
+    const movingStage = screen.getByLabelText(/巡逻员距离移动目标还有 \d+ 米/)
+    expect(movingStage).not.toHaveAttribute('aria-label', '巡逻员距离移动目标还有 100 米')
+    expect(view.container.querySelector('.chase-hud')).toHaveTextContent('连续 1')
 
     act(() => vi.advanceTimersByTime(90_100))
     await act(async () => Promise.resolve())
@@ -331,8 +417,12 @@ describe('ChaseGamePage timing fairness', () => {
       maxStreak: 1,
       wordIds: ['exp-cat'],
       mistakeWordIds: ['exp-cat', 'exp-book'],
-      remainingDistance: 87,
-      rulesVersion: '1.2.0',
+      remainingDistance: expect.any(Number),
+      challengeMode: 'endless',
+      startStage: 1,
+      highestStage: 1,
+      badgesRecovered: 0,
+      rulesVersion: '1.3.0',
       startedAt: initialTime + 120_000,
     })
     expect(saveRun.mock.calls[0][0].durationMs).toBeGreaterThanOrEqual(90_000)
@@ -340,8 +430,8 @@ describe('ChaseGamePage timing fairness', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '重新追踪' }))
     expect(screen.getByText('90', { selector: '.game-hud b' })).toBeInTheDocument()
-    expect(screen.getByLabelText('警察距离目标还有 100 米')).toBeInTheDocument()
-    expect(screen.getByText(/连续正确/)).toHaveTextContent('连续正确 0')
+    expect(screen.getByLabelText('巡逻员距离移动目标还有 100 米')).toBeInTheDocument()
+    expect(view.container.querySelector('.chase-hud')).toHaveTextContent('连续 0')
     expect(screen.queryByRole('heading', { name: '线索还在' })).not.toBeInTheDocument()
 
     act(() => vi.advanceTimersByTime(120_000))

@@ -19,6 +19,11 @@ vi.mock('../pages/WordBookPage', () => ({
     <div><p>wordbook-page</p><button onClick={() => navigate('parent')}>open-parent</button></div>
   ),
 }))
+vi.mock('../pages/RewardCabinetPage', () => ({
+  RewardCabinetPage: ({ navigate }: { navigate: (route: string) => void }) => (
+    <div><p>rewards-page</p><button onClick={() => navigate('parent')}>rewards-to-parent</button></div>
+  ),
+}))
 vi.mock('../pages/ParentDashboard', () => ({
   ParentDashboard: ({ navigate }: { navigate: (route: string) => void }) => (
     <div><p>parent-page</p><button onClick={() => navigate('home')}>open-home</button></div>
@@ -67,6 +72,10 @@ describe('App routing', () => {
     window.location.hash = '#/frog'
     fireEvent(window, new HashChangeEvent('hashchange'))
     await waitFor(() => expect(screen.getByText('game-page:frog')).toBeInTheDocument())
+
+    window.location.hash = '#/rewards'
+    fireEvent(window, new HashChangeEvent('hashchange'))
+    await waitFor(() => expect(screen.getByText('rewards-page')).toBeInTheDocument())
 
     window.location.hash = '#/unknown'
     fireEvent(window, new HashChangeEvent('hashchange'))

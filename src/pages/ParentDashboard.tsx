@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import { audioService, type AudioSettings } from '../core/audio-service'
 import type { DashboardSummary } from '../core/models'
+import { progressStore } from '../core/progress-store'
 import type { AppRoute } from '../App'
 import { Icon } from '../ui/Icon'
 
@@ -8,13 +10,42 @@ interface ParentDashboardProps {
   audioSettings: AudioSettings
   navigate: (route: AppRoute) => void
   toggleAudio: () => void
+  onRewardChanged: () => Promise<void>
 }
 
-export function ParentDashboard({ summary, audioSettings, navigate, toggleAudio }: ParentDashboardProps) {
+export function ParentDashboard({ summary, audioSettings, navigate, toggleAudio, onRewardChanged }: ParentDashboardProps) {
   const accuracyLabel = summary.recentRuns.length === 0 ? '—' : `${Math.round(summary.accuracy * 100)}%`
   const totalMinutes = Math.max(0, summary.todayMinutes)
   const goalPercent = Math.min(100, Math.round((Math.min(8, totalMinutes) / 8) * 100))
   const weekBars = [42, 58, 49, Math.max(18, Math.min(66, totalMinutes * 6)), 18, 18, 18]
+  const [rewardState, setRewardState] = useState(summary.rewardState)
+  const [busyRedemptionId, setBusyRedemptionId] = useState<string | null>(null)
+  const [rewardNotice, setRewardNotice] = useState<string | null>(null)
+  const pendingFamilyRewards = rewardState.redemptions.filter((item) => item.kind === 'family' && item.status === 'pending')
+
+  useEffect(() => setRewardState(summary.rewardState), [summary.rewardState])
+
+  const openFamilyRewards = () => {
+    const panel = document.getElementById('family-rewards')
+    panel?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+    panel?.focus()
+  }
+
+  const resolveFamilyReward = async (redemptionId: string, approved: boolean) => {
+    setBusyRedemptionId(redemptionId)
+    setRewardNotice(null)
+    try {
+      const nextState = await progressStore.resolveFamilyReward(redemptionId, approved)
+      setRewardState(nextState)
+      setRewardNotice(approved ? '家庭奖励已确认，积分已经扣除。' : '申请已拒绝，本次没有扣除积分。')
+      await onRewardChanged()
+    } catch (error) {
+      setRewardNotice(error instanceof Error ? error.message : '处理申请时出现问题，请稍后重试。')
+    } finally {
+      setBusyRedemptionId(null)
+    }
+  }
+
   const openSoundSettings = () => {
     const panel = document.getElementById('sound-settings')
     panel?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
@@ -31,6 +62,7 @@ export function ParentDashboard({ summary, audioSettings, navigate, toggleAudio 
         <nav className="dashboard-nav">
           <button className="active" onClick={() => navigate('parent')}><Icon name="home" />今日学习</button>
           <button onClick={() => navigate('wordbook')}><Icon name="book" />我的单词本 <small>{summary.wrongWordCount} 个待复习</small></button>
+          <button onClick={openFamilyRewards}><Icon name="star" />家庭奖励 <small>{pendingFamilyRewards.length} 个待确认</small></button>
           <button disabled aria-label="学习记录，开发中"><Icon name="chart" />学习记录 <small>开发中</small></button>
           <button onClick={openSoundSettings}><Icon name={audioSettings.muted ? 'soundOff' : 'sound'} />声音设置</button>
         </nav>
@@ -72,6 +104,27 @@ export function ParentDashboard({ summary, audioSettings, navigate, toggleAudio 
             <span><strong>城市追踪战</strong><small>输入正确单词，追回被拿走的城市徽章。</small><em>{summary.bestChaseMs ? `最佳 ${Math.round(summary.bestChaseMs / 1000)} 秒 →` : '开始首次追踪 →'}</em></span>
             <span className="mini-city" aria-hidden="true"><i /><i /></span>
           </button>
+        </section>
+
+        <section id="family-rewards" className="family-approval-panel" tabIndex={-1} aria-labelledby="family-approval-title">
+          <header>
+            <div><span>仅在本机处理</span><h3 id="family-approval-title">家庭奖励确认</h3></div>
+            <strong>余额 {rewardState.balance} 分</strong>
+          </header>
+          <p>孩子只能提交愿望。批准后才扣除积分；拒绝不会扣分，系统不会购买、配送或收集地址。</p>
+          {rewardNotice && <p className="family-reward-notice" role="status">{rewardNotice}</p>}
+          {pendingFamilyRewards.length === 0
+            ? <div className="family-reward-empty">当前没有待确认愿望。<button onClick={() => navigate('rewards')}>查看孩子的奖励柜</button></div>
+            : <div className="family-request-list">{pendingFamilyRewards.map((request) => (
+                <article key={request.id}>
+                  <span aria-hidden="true">🎁</span>
+                  <div><strong>{request.rewardName}</strong><small>需要 {request.cost} 积分 · 申请后积分仍未扣除</small></div>
+                  <div className="family-request-actions">
+                    <button disabled={busyRedemptionId === request.id} onClick={() => void resolveFamilyReward(request.id, false)} aria-label={`拒绝 ${request.rewardName}`}>拒绝</button>
+                    <button disabled={busyRedemptionId === request.id} onClick={() => void resolveFamilyReward(request.id, true)} aria-label={`批准 ${request.rewardName}`}>批准并扣分</button>
+                  </div>
+                </article>
+              ))}</div>}
         </section>
       </main>
 

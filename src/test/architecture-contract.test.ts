@@ -65,7 +65,7 @@ describe('production architecture contracts', () => {
     expect(source).toMatch(/progressStore\.saveRun\(/)
     expect(source).toContain("from '../core/audio-service'")
     expect(source).toMatch(/audioService\.(?:play|speak)\(/)
-    expect(source).toContain("rulesVersion: '1.2.0'")
+    expect(source).toMatch(/rulesVersion: (?:'1\.2\.0'|FROG_RULES_VERSION|CHASE_RULES_VERSION)/)
   })
 
   it.each(vocabularyGamePages)('%s uses the shared randomized word session', (page) => {

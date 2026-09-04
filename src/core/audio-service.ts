@@ -9,6 +9,7 @@ export type AudioEventId =
   | 'run.success'
   | 'run.failure'
   | 'level.up'
+  | 'combo.up'
   | 'ui.click'
 
 export interface AudioSettings {
@@ -44,6 +45,7 @@ const EVENT_TONES: Record<AudioEventId, { channel: AudioChannel; frequency: numb
   'run.success': { channel: 'sfx', frequency: 720, duration: 0.25 },
   'run.failure': { channel: 'sfx', frequency: 250, duration: 0.2 },
   'level.up': { channel: 'sfx', frequency: 860, duration: 0.18 },
+  'combo.up': { channel: 'sfx', frequency: 940, duration: 0.14 },
   'ui.click': { channel: 'ui', frequency: 480, duration: 0.045 },
 }
 

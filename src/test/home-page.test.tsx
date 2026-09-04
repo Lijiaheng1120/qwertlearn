@@ -4,7 +4,7 @@ import { EMPTY_DASHBOARD, type RunResult } from '../core/models'
 import { HomePage } from '../pages/HomePage'
 
 describe('HomePage', () => {
-  it('makes all four learning entrances discoverable', () => {
+  it('makes all five learning and growth entrances discoverable', () => {
     const navigate = vi.fn()
     const { container } = render(
       <HomePage
@@ -22,6 +22,8 @@ describe('HomePage', () => {
     expect(screen.getByRole('button', { name: /青蛙跳荷叶/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /城市追踪战/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '我的单词本' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '成长奖励' })).toBeInTheDocument()
+    expect(screen.getByText('你有 0 冒险积分')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /青蛙跳荷叶/ }))
     expect(navigate).toHaveBeenCalledWith('frog')
@@ -31,6 +33,10 @@ describe('HomePage', () => {
     expect(navigate).toHaveBeenCalledWith('training')
     fireEvent.click(screen.getByRole('button', { name: '我的单词本' }))
     expect(navigate).toHaveBeenCalledWith('wordbook')
+    fireEvent.click(screen.getByRole('button', { name: '成长奖励' }))
+    expect(navigate).toHaveBeenCalledWith('rewards')
+    fireEvent.click(screen.getByRole('button', { name: /打开奖励柜/ }))
+    expect(navigate).toHaveBeenCalledWith('rewards')
     fireEvent.click(screen.getByRole('button', { name: '学习记录' }))
     expect(navigate).toHaveBeenCalledWith('parent')
     fireEvent.click(screen.getByRole('button', { name: /键盘训练营/ }))

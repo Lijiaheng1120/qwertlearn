@@ -1,7 +1,8 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { audioService } from '../core/audio-service'
 import { EMPTY_DASHBOARD, type RunResult } from '../core/models'
+import { progressStore } from '../core/progress-store'
 import { ParentDashboard } from '../pages/ParentDashboard'
 
 describe('ParentDashboard', () => {
@@ -14,6 +15,7 @@ describe('ParentDashboard', () => {
         audioSettings={{ muted: false, music: 0.35, sfx: 0.7, voice: 1, ui: 0.5 }}
         navigate={navigate}
         toggleAudio={toggleAudio}
+        onRewardChanged={vi.fn().mockResolvedValue(undefined)}
       />,
     )
 
@@ -52,6 +54,7 @@ describe('ParentDashboard', () => {
         audioSettings={{ muted: false, music: 0.35, sfx: 0.7, voice: 1, ui: 0.5 }}
         navigate={navigate}
         toggleAudio={toggleAudio}
+        onRewardChanged={vi.fn().mockResolvedValue(undefined)}
       />,
     )
 
@@ -74,5 +77,39 @@ describe('ParentDashboard', () => {
     fireEvent.change(screen.getByLabelText('提示音音量'), { target: { value: '0.4' } })
     expect(setChannel).toHaveBeenCalledWith('sfx', 0.4)
     setChannel.mockRestore()
+  })
+
+  it('approves a pending family reward through ProgressStore before deducting points', async () => {
+    const pendingState = {
+      ...EMPTY_DASHBOARD.rewardState,
+      balance: 1_600,
+      lifetimeEarned: 1_600,
+      redemptions: [{
+        id: 'family-1', rewardId: 'family-notebook', rewardName: '新练习本', kind: 'family' as const,
+        cost: 1_500, status: 'pending' as const, requestedAt: 1, resolvedAt: null,
+      }],
+    }
+    const approvedState = {
+      ...pendingState,
+      balance: 100,
+      redemptions: pendingState.redemptions.map((item) => ({ ...item, status: 'fulfilled' as const, resolvedAt: 2 })),
+    }
+    const resolve = vi.spyOn(progressStore, 'resolveFamilyReward').mockResolvedValue(approvedState)
+    const refresh = vi.fn().mockResolvedValue(undefined)
+    render(
+      <ParentDashboard
+        summary={{ ...EMPTY_DASHBOARD, rewardState: pendingState }}
+        audioSettings={{ muted: false, music: 0.35, sfx: 0.7, voice: 1, ui: 0.5 }}
+        navigate={vi.fn()}
+        toggleAudio={vi.fn()}
+        onRewardChanged={refresh}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '批准 新练习本' }))
+    await waitFor(() => expect(resolve).toHaveBeenCalledWith('family-1', true))
+    expect(screen.getByRole('status')).toHaveTextContent('积分已经扣除')
+    expect(screen.getByText('余额 100 分')).toBeInTheDocument()
+    expect(refresh).toHaveBeenCalledOnce()
   })
 })
