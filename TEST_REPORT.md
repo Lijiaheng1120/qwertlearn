@@ -14,7 +14,7 @@ QwertLearn 当前自动化质量门槛全部通过：
 | Vitest 全量测试 | 20 个文件，100 项通过，0 项失败 |
 | V8 覆盖率门槛 | 通过 |
 | Vite 生产构建 | 通过 |
-| PWA Service Worker | 生成成功，预缓存 18 项（1557.88 KiB） |
+| PWA Service Worker | 生成成功，预缓存 18 项（1557.87 KiB） |
 | npm 高危依赖审计 | 0 个漏洞 |
 | 本地真实 Chrome 验证 | 首页、青蛙、城市、奖励柜、家长中心桌面与关键 390px 窄屏通过；无页面错误 |
 
@@ -161,7 +161,7 @@ QwertLearn 当前自动化质量门槛全部通过：
 
 - Vite 8.2.2 构建成功；
 - PWA `generateSW` 成功；
-- 预缓存 18 项，约 1557.88 KiB；
+- 预缓存 18 项，约 1557.87 KiB；
 - `#/`、`#/frog`、`#/chase`、`#/rewards`、`#/parent` 均通过真实系统 Chrome 桌面渲染；
 - 首页与奖励柜额外通过 390×844 窄屏全页检查；导航、卡片、路线切换、奖励目录和家庭确认面板无横向截断；
 - 浏览器页面错误为空；截图保存于 `/tmp/qwertlearn-final-*.png` 与 `/tmp/qwertlearn-final-mobile-*.png`。
