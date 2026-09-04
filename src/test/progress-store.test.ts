@@ -264,6 +264,7 @@ describe('ProgressStore', () => {
     expect(await store.getLeaderboard(buildLeaderboardKey(second), 1)).toHaveLength(1)
     expect((await store.listRuns()).find((run) => run.id === 'legacy-frog')).toMatchObject({
       pausedMs: 0,
+      failures: 0,
       usedFullHints: true,
       wordIds: [],
       mistakeWordIds: [],

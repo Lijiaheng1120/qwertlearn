@@ -129,17 +129,17 @@ describe('FrogGamePage timing and lifecycle', () => {
     )
 
     act(() => vi.advanceTimersByTime(60_000))
-    expect(screen.getByLabelText('剩余 3 次机会')).toBeInTheDocument()
+    expect(screen.getByLabelText('失败 0 次，最多 3 次')).toBeInTheDocument()
     expect(screen.getByText(/按第一个字母后开始/)).toBeInTheDocument()
 
     fireEvent.keyDown(window, { key: 'c' })
     act(() => setDocumentHidden(true))
     expect(screen.getByRole('heading', { name: '游戏已暂停' })).toBeInTheDocument()
     act(() => vi.advanceTimersByTime(60_000))
-    expect(screen.getByLabelText('剩余 3 次机会')).toBeInTheDocument()
+    expect(screen.getByLabelText('失败 0 次，最多 3 次')).toBeInTheDocument()
     act(() => setDocumentHidden(false))
     act(() => vi.advanceTimersByTime(duration + 200))
-    expect(screen.getByLabelText('剩余 2 次机会')).toBeInTheDocument()
+    expect(screen.getByLabelText('失败 1 次，最多 3 次')).toBeInTheDocument()
     view.unmount()
   })
 
@@ -194,12 +194,12 @@ describe('FrogGamePage timing and lifecycle', () => {
     )
 
     await expireFrogRound('c')
-    expect(screen.getByLabelText('剩余 2 次机会')).toBeInTheDocument()
+    expect(screen.getByLabelText('失败 1 次，最多 3 次')).toBeInTheDocument()
     await expireFrogRound('b')
-    expect(screen.getByLabelText('剩余 1 次机会')).toBeInTheDocument()
+    expect(screen.getByLabelText('失败 2 次，最多 3 次')).toBeInTheDocument()
     await expireFrogRound('g', false)
 
-    expect(screen.getByLabelText('剩余 0 次机会')).toBeInTheDocument()
+    expect(screen.getByLabelText('失败 3 次，最多 3 次')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: '青蛙坐船回岸边了' })).toBeInTheDocument()
     await act(async () => Promise.resolve())
     expect(saveRun).toHaveBeenCalledOnce()
@@ -208,9 +208,10 @@ describe('FrogGamePage timing and lifecycle', () => {
       completed: false,
       correctWords: 0,
       mistakes: 0,
+      failures: 3,
       wordIds: [],
       mistakeWordIds: ['exp-cat', 'exp-book', 'exp-green'],
-      rulesVersion: '1.3.0',
+      rulesVersion: '1.4.0',
       challengeMode: 'learning',
       startStage: 1,
       highestStage: 1,
@@ -220,7 +221,7 @@ describe('FrogGamePage timing and lifecycle', () => {
     expect(saveRun).toHaveBeenCalledOnce()
 
     fireEvent.click(screen.getByRole('button', { name: '重新挑战' }))
-    expect(screen.getByLabelText('剩余 3 次机会')).toBeInTheDocument()
+    expect(screen.getByLabelText('失败 0 次，最多 3 次')).toBeInTheDocument()
     expect(screen.getByText('0/8')).toBeInTheDocument()
     expect(screen.getByText(/按第一个字母后开始/)).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: '青蛙坐船回岸边了' })).not.toBeInTheDocument()
@@ -263,7 +264,7 @@ describe('FrogGamePage timing and lifecycle', () => {
       challengeMode: 'learning',
       startStage: 1,
       highestStage: 2,
-      rulesVersion: '1.3.0',
+      rulesVersion: '1.4.0',
     })
   })
 
@@ -292,7 +293,46 @@ describe('FrogGamePage timing and lifecycle', () => {
       startStage: 4,
       highestStage: 4,
       correctWords: 1,
-      rulesVersion: '1.3.0',
+      rulesVersion: '1.4.0',
+    })
+  })
+
+  it('stops endless play on the third failure and persists the explicit count', async () => {
+    vi.useFakeTimers()
+    const saveRun = vi.spyOn(progressStore, 'saveRun').mockResolvedValue('indexeddb')
+    vi.spyOn(audioService, 'play').mockImplementation(() => {})
+    vi.spyOn(audioService, 'speak').mockImplementation(() => {})
+    render(
+      <FrogGamePage
+        audioSettings={audioSettings}
+        highestUnlockedStage={4}
+        navigate={vi.fn()}
+        toggleAudio={vi.fn()}
+        onRunSaved={vi.fn().mockResolvedValue(undefined)}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /无尽挑战/ }))
+    expect(screen.getByLabelText('失败 0 次，最多 3 次')).toBeInTheDocument()
+    await expireFrogRound('c')
+    expect(screen.getByLabelText('失败 1 次，最多 3 次')).toBeInTheDocument()
+    await expireFrogRound('b')
+    expect(screen.getByLabelText('失败 2 次，最多 3 次')).toBeInTheDocument()
+    await expireFrogRound('g', false)
+
+    expect(screen.getByLabelText('失败 3 次，最多 3 次')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '青蛙坐船回岸边了' })).toBeInTheDocument()
+    expect(screen.getByText(/累计失败 3\/3 次，本局结束/)).toBeInTheDocument()
+    await act(async () => Promise.resolve())
+    expect(saveRun).toHaveBeenCalledOnce()
+    expect(saveRun.mock.calls[0][0]).toMatchObject({
+      gameId: 'frog',
+      completed: false,
+      failures: 3,
+      challengeMode: 'endless',
+      startStage: 4,
+      highestStage: 4,
+      rulesVersion: '1.4.0',
     })
   })
 

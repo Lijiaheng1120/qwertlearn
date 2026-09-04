@@ -70,6 +70,17 @@ describe('production architecture contracts', () => {
     expect(source).toMatch(/rulesVersion: (?:'1\.2\.0'|FROG_RULES_VERSION|CHASE_RULES_VERSION)/)
   })
 
+  it('keeps the frog attached to the shared moving-pad motion helper', () => {
+    const source = readSource('games/frog/FrogScene.ts')
+
+    expect(source).toContain("from './frog-pad-motion'")
+    expect(source).toContain('getFrogPadRiderPosition(landedPad.shape)')
+    expect(source).toContain('getFrogJumpPosition(')
+    expect(source).toContain('getNextFrogRouteStep(targetIndex, this.stageRules.lilyRows)')
+    expect(source).toContain('this.returnToShore(nextWord, settle)')
+    expect(source).toMatch(/update\(\): void \{\s*this\.followLandedPad\(\)/)
+  })
+
   it('keeps the pointer-driven match game on the shared Match Session boundary', () => {
     const source = readSource('pages/MatchGamePage.tsx')
     expect(source).toContain("from '../core/use-match-session'")

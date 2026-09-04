@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import { getFrogStageRules, type FrogStageRules } from '../../core/challenge-progression'
+import { getFrogJumpPosition, getFrogPadRiderPosition, getFrogReturnPosition, getNextFrogRouteStep } from './frog-pad-motion'
 
 interface Pad {
   shape: Phaser.GameObjects.Ellipse
@@ -24,6 +25,8 @@ export class FrogScene extends Phaser.Scene {
   private frogEyes: Phaser.GameObjects.Arc[] = []
   private pads: Pad[] = []
   private targetIndex = 0
+  private landedPadIndex: number | null = null
+  private jumpInProgress = false
   private pendingWord = ''
   private stageRules: FrogStageRules = getFrogStageRules(1)
   private cosmetics: FrogCosmetics = {}
@@ -33,6 +36,18 @@ export class FrogScene extends Phaser.Scene {
 
   constructor() {
     super('frog-scene')
+  }
+
+  update(): void {
+    this.followLandedPad()
+  }
+
+  private followLandedPad(): void {
+    if (!this.frog || this.jumpInProgress || this.landedPadIndex === null) return
+    const landedPad = this.pads[this.landedPadIndex]
+    if (!landedPad?.shape.active || !landedPad.shape.visible) return
+    const position = getFrogPadRiderPosition(landedPad.shape)
+    this.frog.setPosition(position.x, position.y)
   }
 
   create(): void {
@@ -71,7 +86,7 @@ export class FrogScene extends Phaser.Scene {
     const smile = this.add.arc(0, 2, 16, 15, 165, false, 0, 0).setStrokeStyle(3, 0x285f37)
     this.frog = this.add.container(78, height - 58, [this.frogBody, leftEye, rightEye, leftPupil, rightPupil, leftDot, rightDot, smile])
 
-    this.add.text(28, 25, '每 8 词升级，生命耗尽前可以一直跳', {
+    this.add.text(28, 25, '每 8 词升级，累计 3 次失败后结束', {
       fontFamily: '-apple-system, BlinkMacSystemFont, PingFang SC, sans-serif',
       fontSize: '20px',
       fontStyle: 'bold',
@@ -113,6 +128,7 @@ export class FrogScene extends Phaser.Scene {
       })
     })
     this.setTarget(this.pendingWord || 'cat')
+    this.followLandedPad()
   }
 
   applyRewards(cosmetics: FrogCosmetics): void {
@@ -159,9 +175,44 @@ export class FrogScene extends Phaser.Scene {
     })
   }
 
+  private returnToShore(nextWord: string, settle: () => void): void {
+    if (!this.frog) {
+      settle()
+      return
+    }
+    const start = { x: this.frog.x, y: this.frog.y }
+    const destination = { x: 78, y: this.scale.height - 58 }
+    const returnProgress = { value: 0 }
+    this.jumpInProgress = true
+    this.landedPadIndex = null
+
+    this.tweens.add({
+      targets: returnProgress,
+      value: 1,
+      duration: this.reducedMotion ? 1 : 360,
+      ease: 'Sine.easeInOut',
+      onUpdate: () => {
+        if (!this.frog) return
+        const position = getFrogReturnPosition(start, destination, returnProgress.value)
+        this.frog.setPosition(position.x, position.y)
+      },
+      onComplete: () => {
+        this.jumpInProgress = false
+        this.frog?.setPosition(destination.x, destination.y)
+        this.setTarget(nextWord)
+        settle()
+      },
+    })
+  }
+
   jumpToNext(nextWord: string): Promise<void> {
     if (!this.frog) return Promise.resolve()
-    const target = this.pads[this.targetIndex]
+    const targetIndex = this.targetIndex
+    const target = this.pads[targetIndex]
+    const startX = this.frog.x
+    const startY = this.frog.y
+    const jumpProgress = { value: 0 }
+    this.jumpInProgress = true
 
     return new Promise((resolve) => {
       let settled = false
@@ -174,22 +225,35 @@ export class FrogScene extends Phaser.Scene {
       this.pendingJumpResolvers.add(settle)
 
       this.tweens.add({
-        targets: this.frog,
-        x: target.shape.x,
-        y: target.shape.y - 38,
+        targets: jumpProgress,
+        value: 1,
         duration: this.reducedMotion ? 1 : 470,
         ease: 'Sine.easeInOut',
+        onUpdate: () => {
+          if (!this.frog) return
+          const position = getFrogJumpPosition(
+            { x: startX, y: startY },
+            target.shape,
+            jumpProgress.value,
+            this.reducedMotion ? 0 : 62,
+          )
+          this.frog.setPosition(position.x, position.y)
+        },
         onComplete: () => {
+          this.jumpInProgress = false
           if (!this.sys.isActive()) {
             settle()
             return
           }
+          this.landedPadIndex = targetIndex
+          this.followLandedPad()
           target.label.setText('✓')
-          this.targetIndex += 1
-          if (this.targetIndex >= this.stageRules.lilyRows) {
+          const routeStep = getNextFrogRouteStep(targetIndex, this.stageRules.lilyRows)
+          this.targetIndex = routeStep.nextTargetIndex
+          if (routeStep.reachedTop) {
             if (!this.reducedMotion) this.cameras.main.flash(240, 255, 245, 175)
-            this.targetIndex = 0
-            this.frog?.setPosition(78, this.scale.height - 58)
+            this.returnToShore(nextWord, settle)
+            return
           }
           this.setTarget(nextWord)
           settle()
@@ -200,6 +264,7 @@ export class FrogScene extends Phaser.Scene {
 
   cancelPendingActions(): void {
     this.tweens?.killAll()
+    this.jumpInProgress = false
     const pending = [...this.pendingJumpResolvers]
     this.pendingJumpResolvers.clear()
     pending.forEach((resolve) => resolve())
@@ -207,7 +272,7 @@ export class FrogScene extends Phaser.Scene {
 
   showMistake(): void {
     if (!this.frog) return
-    this.tweens.add({ targets: this.frog, x: '+=8', duration: this.reducedMotion ? 1 : 45, yoyo: true, repeat: 2 })
+    this.tweens.add({ targets: this.frog, angle: 5, duration: this.reducedMotion ? 1 : 45, yoyo: true, repeat: 2 })
   }
 
   showRescue(word: string): void {
@@ -217,6 +282,8 @@ export class FrogScene extends Phaser.Scene {
 
   resetRun(word: string): void {
     this.targetIndex = 0
+    this.landedPadIndex = null
+    this.jumpInProgress = false
     this.frog?.setPosition(78, this.scale.height - 58).setAlpha(1)
     this.pads.forEach((pad) => pad.label.setText(''))
     this.configureStage(this.stageRules)

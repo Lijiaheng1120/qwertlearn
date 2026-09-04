@@ -1,10 +1,12 @@
 import type { DifficultyProfile } from './models'
 
 export const WORDS_PER_STAGE = 8
-export const FROG_RULES_VERSION = '1.3.0'
+export const FROG_MAX_FAILURES = 3
+export const FROG_RULES_VERSION = '1.4.0'
 export const CHASE_RULES_VERSION = '1.3.0'
-export const MATCH_RULES_VERSION = '1.0.0'
+export const MATCH_RULES_VERSION = '1.1.0'
 export const MATCH_FINAL_STAGE = 3
+export const MATCH_AUTO_ADVANCE_DELAY_MS = 900
 export const CHASE_RUN_DURATION_MS = 90_000
 export const CHASE_START_DISTANCE = 100
 export const CHASE_MAX_DISTANCE = 160

@@ -3,6 +3,7 @@ import type { AudioSettings } from '../core/audio-service'
 import { audioService } from '../core/audio-service'
 import {
   getMatchStageRules,
+  MATCH_AUTO_ADVANCE_DELAY_MS,
   MATCH_FINAL_STAGE,
   MATCH_RULES_VERSION,
 } from '../core/challenge-progression'
@@ -261,6 +262,24 @@ export function MatchGamePage({
   }, [match.snapshot.lastEvent, match.snapshot.matchedWordIds.length, round.words.length, saveRun, setGameStatus, wordsById])
 
   useEffect(() => {
+    if (status !== 'stage-clear') return
+    const timer = window.setTimeout(() => {
+      if (statusRef.current !== 'stage-clear') return
+      const nextStage = Math.min(MATCH_FINAL_STAGE, stageLevelRef.current + 1)
+      stageLevelRef.current = nextStage
+      highestStageRef.current = Math.max(highestStageRef.current, nextStage)
+      const nextRules = getMatchStageRules(nextStage)
+      setStageLevel(nextStage)
+      setRound(buildRound(selectedLevelRef.current, nextStage))
+      setRemainingMs(nextRules.roundDurationMs)
+      setMessage('新一关开始，选择任意一张词卡')
+      setGameStatus('playing')
+      match.reset()
+    }, MATCH_AUTO_ADVANCE_DELAY_MS)
+    return () => window.clearTimeout(timer)
+  }, [buildRound, match.reset, setGameStatus, status])
+
+  useEffect(() => {
     if (status !== 'playing' || !roundStarted || remainingMs === null) return
     let previousTick = performance.now()
     const timer = window.setInterval(() => {
@@ -323,19 +342,7 @@ export function MatchGamePage({
     match.reset()
   }
 
-  const advanceStage = () => {
-    if (statusRef.current !== 'stage-clear') return
-    const nextStage = Math.min(MATCH_FINAL_STAGE, stageLevelRef.current + 1)
-    stageLevelRef.current = nextStage
-    highestStageRef.current = Math.max(highestStageRef.current, nextStage)
-    const nextRules = getMatchStageRules(nextStage)
-    setStageLevel(nextStage)
-    setRound(buildRound(selectedLevelRef.current, nextStage))
-    setRemainingMs(nextRules.roundDurationMs)
-    setMessage('新一关开始，选择任意一张词卡')
-    setGameStatus('playing')
-    match.reset()
-  }
+
 
   const endRun = async () => {
     if (!runClockRef.current.hasStarted || !['playing', 'stage-clear'].includes(statusRef.current)) return
@@ -474,8 +481,8 @@ export function MatchGamePage({
           {status === 'stage-clear' && (
             <div className="match-stage-clear" role="status">
               <span>🌼</span>
-              <div><strong>{rules.label}关完成！</strong><small>下一关增加到 {getMatchStageRules(stageLevel + 1).pairCount} 对，继续让花园盛开。</small></div>
-              <button onClick={advanceStage}>进入下一关 <Icon name="arrow" /></button>
+              <div><strong>{rules.label}关完成！</strong><small>下一关增加到 {getMatchStageRules(stageLevel + 1).pairCount} 对，花园会自动继续生长。</small></div>
+              <p className="match-auto-advance"><Icon name="arrow" />自动进入第 {stageLevel + 1} 关</p>
             </div>
           )}
         </section>

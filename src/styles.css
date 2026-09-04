@@ -925,12 +925,12 @@ svg { display: block; }
 .match-garden-path span { font-size: 28px; filter: drop-shadow(0 4px 5px rgba(61,104,54,.13)); }
 .match-garden-path i { width: 12px; height: 12px; border-radius: 50%; background: #c8e0b6; box-shadow: 0 0 0 6px #edf5e5; }
 .match-stage-clear { margin: 0 18px 18px; padding: 13px; display: grid; grid-template-columns: 42px 1fr auto; align-items: center; gap: 12px; border: 2px solid #b9dcae; border-radius: 16px; background: #eaf6df; position: relative; z-index: 3; }
-.match-stage-clear > span { font-size: 31px; }
+.match-stage-clear > span:first-child { font-size: 31px; }
 .match-stage-clear strong, .match-stage-clear small { display: block; }
 .match-stage-clear strong { font-size: 14px; }
 .match-stage-clear small { margin-top: 2px; color: #607168; font-size: 10px; }
-.match-stage-clear button { padding: 10px 13px; display: flex; align-items: center; gap: 6px; border: 0; border-radius: 11px; color: #fff; background: var(--green-dark); font-size: 11px; font-weight: 900; cursor: pointer; }
-.match-stage-clear svg { width: 16px; }
+.match-auto-advance { margin: 0; padding: 10px 13px; display: flex; align-items: center; gap: 6px; border-radius: 11px; color: #fff; background: var(--green-dark); font-size: 11px; font-weight: 900; }
+.match-auto-advance svg { width: 16px; }
 .match-guide-card { padding: 18px; border: 2px solid rgba(23,53,59,.08); border-radius: 27px; background: rgba(255,253,244,.98); box-shadow: 0 15px 38px rgba(35,92,87,.1); }
 .match-bee { height: 154px; display: grid; place-items: center; overflow: hidden; border-radius: 21px; background: linear-gradient(145deg, #d9f2ce, #fff1b6); position: relative; }
 .match-bee span { z-index: 2; font-size: 66px; filter: drop-shadow(0 8px 6px rgba(78,94,45,.16)); animation: match-bee-float 2.1s ease-in-out infinite; }
@@ -982,7 +982,7 @@ svg { display: block; }
   .match-garden-path span { font-size: 19px; }
   .match-garden-path i { width: 9px; height: 9px; box-shadow: 0 0 0 4px #edf5e5; }
   .match-stage-clear { grid-template-columns: 36px 1fr; }
-  .match-stage-clear button { grid-column: 1 / 3; justify-content: center; }
+  .match-auto-advance { grid-column: 1 / 3; justify-content: center; }
   .match-guide-card { padding: 13px; display: block; }
   .match-bee { height: 90px; }
   .match-bee span { font-size: 45px; }

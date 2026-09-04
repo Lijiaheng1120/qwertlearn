@@ -58,6 +58,7 @@ function normalizeRun(run: RunResult): RunResult {
   return {
     ...run,
     pausedMs: Number.isFinite(run.pausedMs) ? run.pausedMs : 0,
+    failures: Math.max(0, Number.isFinite(run.failures) ? Math.round(run.failures!) : 0),
     usedFullHints: run.usedFullHints ?? true,
     wordIds: Array.isArray(run.wordIds) ? run.wordIds : [],
     mistakeWordIds: Array.isArray(run.mistakeWordIds) ? run.mistakeWordIds : [],

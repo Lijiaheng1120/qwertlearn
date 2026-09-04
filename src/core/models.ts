@@ -152,6 +152,7 @@ export interface RunResult {
   correctWords: number
   correctCharacters: number
   mistakes: number
+  failures?: number
   maxStreak: number
   score: number
   words: string[]

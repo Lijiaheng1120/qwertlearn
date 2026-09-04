@@ -4,6 +4,7 @@ import type { AudioSettings } from '../core/audio-service'
 import { audioService } from '../core/audio-service'
 import {
   endlessDifficultyForStage,
+  FROG_MAX_FAILURES,
   FROG_RULES_VERSION,
   getFrogRoundDurationMs as calculateFrogRoundDurationMs,
   getFrogStageRules,
@@ -69,7 +70,7 @@ export function FrogGamePage({
 
   const [sessionWords, setSessionWords] = useState(() => createWordSession(EXPERIENCE_WORDS, wordMemory, { length: WORD_SESSION_BATCH_SIZE }))
   const [wordIndex, setWordIndex] = useState(0)
-  const [lives, setLives] = useState(3)
+  const [failures, setFailures] = useState(0)
   const [streak, setStreak] = useState(0)
   const [maxStreak, setMaxStreak] = useState(0)
   const [correctWords, setCorrectWords] = useState(0)
@@ -94,6 +95,7 @@ export function FrogGamePage({
   const runClockRef = useRef(new ActiveRunClock())
   const mountedRef = useRef(true)
   const mistakesRef = useRef(0)
+  const failuresRef = useRef(0)
   const correctCharactersRef = useRef(0)
   const completedWordsRef = useRef<string[]>([])
   const completedWordIdsRef = useRef<string[]>([])
@@ -212,6 +214,7 @@ export function FrogGamePage({
       correctWords: finalWords,
       correctCharacters: correctCharactersRef.current,
       mistakes: mistakesRef.current,
+      failures: failuresRef.current,
       maxStreak: finalMaxStreak,
       score: finalWords * 100 + finalMaxStreak * 25 + Math.max(0, finalHighestStage - startStageRef.current) * 300,
       words: [...completedWordsRef.current],
@@ -238,14 +241,16 @@ export function FrogGamePage({
 
   const handleTimeout = useCallback(() => {
     if (statusRef.current !== 'playing') return
+    const nextFailures = failuresRef.current + 1
+    failuresRef.current = nextFailures
+    setFailures(nextFailures)
     mistakeWordIdsRef.current.push(currentWord.id)
     setGameStatus('animating')
     audioService.play('frog.rescue')
     sceneRef.current?.showRescue(currentWord.text)
     setStreak(0)
 
-    if (lives <= 1) {
-      setLives(0)
+    if (nextFailures >= FROG_MAX_FAILURES) {
       setGameStatus('lost')
       audioService.play('run.failure')
       void saveRun(false, correctWords, maxStreak, highestStageRef.current)
@@ -260,14 +265,14 @@ export function FrogGamePage({
       setSessionWords(nextSession)
     }
     const nextWord = nextSession[nextWordIndex]
-    setLives((value) => value - 1)
     window.setTimeout(() => {
       if (!mountedRef.current) return
       setRemainingMs(getFrogRoundDurationMs(nextWord.text, difficultyRef.current.speedTier, stageLevelRef.current))
       setWordIndex(nextWordIndex)
       setGameStatus('playing')
     }, 320)
-  }, [correctWords, createQueue, currentWord.id, currentWord.text, lives, maxStreak, saveRun, sessionWords, setGameStatus, wordIndex])
+  }, [correctWords, createQueue, currentWord.id, currentWord.text, maxStreak, saveRun, sessionWords, setGameStatus, wordIndex])
+
 
   useEffect(() => {
     setRemainingMs(getFrogRoundDurationMs(currentWord.text, difficulty.speedTier, stageLevel))
@@ -399,6 +404,7 @@ export function FrogGamePage({
       : INITIAL_DIFFICULTY
     runClockRef.current.reset()
     mistakesRef.current = 0
+    failuresRef.current = 0
     correctCharactersRef.current = 0
     completedWordsRef.current = []
     completedWordIdsRef.current = []
@@ -423,7 +429,7 @@ export function FrogGamePage({
     setDifficulty(nextDifficulty)
     setWordIndex(0)
     setRemainingMs(getFrogRoundDurationMs(firstWord.text, nextDifficulty.speedTier, nextStartStage))
-    setLives(3)
+    setFailures(0)
     setStreak(0)
     setMaxStreak(0)
     setCorrectWords(0)
@@ -465,7 +471,7 @@ export function FrogGamePage({
             <button className="end-run-button" disabled={!runStarted || status !== 'playing'} onClick={() => void finishRun()}>结束本局并结算</button>
           </div>
           <div className="game-hud">
-            <span aria-label={`剩余 ${lives} 次机会`}><Icon name="heart" />{Array.from({ length: 3 }, (_, index) => <i className={index < lives ? 'alive' : ''} key={index} />)}</span>
+            <span aria-label={`失败 ${failures} 次，最多 ${FROG_MAX_FAILURES} 次`}><Icon name="heart" /><b>失败 {failures}/{FROG_MAX_FAILURES}</b></span>
             <span>阶段 <b>{stageLevel}</b></span>
             <span>本阶段 <b>{wordsIntoStage(correctWords)}/{WORDS_PER_STAGE}</b></span>
             <span>连续 <b>{streak}</b></span>
@@ -486,7 +492,7 @@ export function FrogGamePage({
       {storageWarning && <p className="storage-warning" role="status">本局暂存在当前页面，请保持页面开启后再继续练习。</p>}
       {status === 'paused' && <ResultOverlay state="paused" title="游戏已暂停" detail="页面重新显示后，可以从当前单词继续。" onPrimary={() => { runClockRef.current.resume(); setGameStatus('playing') }} primaryLabel="继续游戏" onExit={() => navigate('home')} />}
       {status === 'ended' && <ResultOverlay state="won" title="本次池塘冒险已结算" detail={`完成 ${correctWords} 个单词，到达阶段 ${stageLevel}，活跃 ${Math.round((finalDurationMs ?? 0) / 1000)} 秒。${rewardDetail}`} onPrimary={() => reset(challengeModeRef.current)} primaryLabel="继续挑战" onExit={() => navigate('home')} />}
-      {status === 'lost' && <ResultOverlay state="lost" title="青蛙坐船回岸边了" detail={`已经完成 ${correctWords} 个单词，到达阶段 ${stageLevel}。${rewardDetail}`} onPrimary={() => reset(challengeModeRef.current)} primaryLabel="重新挑战" onExit={() => navigate('home')} />}
+      {status === 'lost' && <ResultOverlay state="lost" title="青蛙坐船回岸边了" detail={`累计失败 ${failures}/${FROG_MAX_FAILURES} 次，本局结束；已经完成 ${correctWords} 个单词，到达阶段 ${stageLevel}。${rewardDetail}`} onPrimary={() => reset(challengeModeRef.current)} primaryLabel="重新挑战" onExit={() => navigate('home')} />}
     </GameShell>
   )
 }

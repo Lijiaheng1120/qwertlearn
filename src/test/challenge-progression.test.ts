@@ -2,16 +2,25 @@ import { describe, expect, it } from 'vitest'
 import {
   chaseWordGain,
   endlessDifficultyForStage,
+  FROG_MAX_FAILURES,
+  FROG_RULES_VERSION,
   getChaseStageRules,
   getFrogRoundDurationMs,
   getFrogStageRules,
   getMatchStageRules,
+  MATCH_AUTO_ADVANCE_DELAY_MS,
+  MATCH_RULES_VERSION,
   stageForCompletedWords,
   wordsIntoStage,
 } from '../core/challenge-progression'
 import { INITIAL_DIFFICULTY } from '../core/models'
 
 describe('challenge progression', () => {
+  it('versions the fixed three-failure cap for both frog challenge modes', () => {
+    expect(FROG_MAX_FAILURES).toBe(3)
+    expect(FROG_RULES_VERSION).toBe('1.4.0')
+  })
+
   it('raises the stage every eight words without imposing a final stage', () => {
     expect(stageForCompletedWords(0)).toBe(1)
     expect(stageForCompletedWords(7)).toBe(1)
@@ -40,7 +49,9 @@ describe('challenge progression', () => {
       .toMatchObject({ speedTier: 5, hintLevel: 0, recentAccuracy: 0.7 })
   })
 
-  it('progresses the Word Garden from 4 untimed pairs to 8 timed pairs', () => {
+  it('progresses the Word Garden automatically from 4 untimed pairs to 8 timed pairs', () => {
+    expect(MATCH_RULES_VERSION).toBe('1.1.0')
+    expect(MATCH_AUTO_ADVANCE_DELAY_MS).toBe(900)
     expect(getMatchStageRules(1)).toEqual({
       stageLevel: 1,
       pairCount: 4,

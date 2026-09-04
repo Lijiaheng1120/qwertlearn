@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { audioService, type AudioSettings } from '../core/audio-service'
+import { MATCH_AUTO_ADVANCE_DELAY_MS } from '../core/challenge-progression'
 import { ALL_VOCABULARY_WORDS } from '../core/models'
 import { progressStore } from '../core/progress-store'
 import { MatchGamePage } from '../pages/MatchGamePage'
@@ -43,6 +44,13 @@ async function matchVisiblePairs(container: HTMLElement): Promise<void> {
   }
 }
 
+async function waitForAutomaticStageAdvance(): Promise<void> {
+  await act(async () => {
+    vi.advanceTimersByTime(MATCH_AUTO_ADVANCE_DELAY_MS)
+    await Promise.resolve()
+  })
+}
+
 afterEach(() => {
   vi.useRealTimers()
   vi.restoreAllMocks()
@@ -67,7 +75,8 @@ describe('MatchGamePage', () => {
     expect(audioService.play).toHaveBeenCalledWith('match.correct')
   })
 
-  it('completes 4, 6, and 8-pair stages before settling a full garden run', async () => {
+  it('automatically progresses through 4, 6, and 8-pair stages before settling a full garden run', async () => {
+    vi.useFakeTimers()
     const saveRun = vi.spyOn(progressStore, 'saveRun').mockResolvedValue('indexeddb')
     vi.spyOn(audioService, 'play').mockImplementation(() => {})
     vi.spyOn(audioService, 'speak').mockImplementation(() => {})
@@ -75,22 +84,24 @@ describe('MatchGamePage', () => {
 
     await matchVisiblePairs(view.container)
     expect(screen.getByText('萌芽关完成！')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /进入下一关/ }))
+    expect(screen.queryByRole('button', { name: /进入下一关/ })).not.toBeInTheDocument()
+    await waitForAutomaticStageAdvance()
     expect(view.container.querySelector('.match-hud')).toHaveTextContent('第 2 / 3 关')
 
     await matchVisiblePairs(view.container)
     expect(screen.getByText('开花关完成！')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /进入下一关/ }))
+    await waitForAutomaticStageAdvance()
     expect(view.container.querySelector('.match-hud')).toHaveTextContent('第 3 / 3 关')
 
     await matchVisiblePairs(view.container)
-    await waitFor(() => expect(screen.getByRole('heading', { name: '词语花园盛开了！' })).toBeInTheDocument())
+    await act(async () => Promise.resolve())
+    expect(screen.getByRole('heading', { name: '词语花园盛开了！' })).toBeInTheDocument()
     expect(saveRun).toHaveBeenCalledOnce()
     expect(saveRun.mock.calls[0][0]).toMatchObject({
       gameId: 'match',
       mode: 'recall',
       wordPackId: 'fltrp-grade4-v1',
-      rulesVersion: '1.0.0',
+      rulesVersion: '1.1.0',
       completed: true,
       correctWords: 18,
       startStage: 1,
@@ -157,7 +168,7 @@ describe('MatchGamePage', () => {
     const view = renderGame()
 
     await matchVisiblePairs(view.container)
-    fireEvent.click(screen.getByRole('button', { name: /进入下一关/ }))
+    await waitForAutomaticStageAdvance()
     const firstEnglishCard = view.container.querySelector<HTMLButtonElement>('.match-word-card:not(.meaning):not(:disabled)')
     if (!firstEnglishCard) throw new Error('Missing stage-two English card')
     fireEvent.click(firstEnglishCard)
