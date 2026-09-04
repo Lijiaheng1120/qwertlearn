@@ -1,8 +1,20 @@
+import { openDB, type DBSchema } from 'idb'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { buildLeaderboardKey, createRunId, type RunResult } from '../core/models'
 import { ProgressStore } from '../core/progress-store'
 
 let databaseSequence = 0
+
+interface LegacyDatabase extends DBSchema {
+  runs: {
+    key: string
+    value: RunResult
+    indexes: {
+      'by-completed-at': number
+      'by-game': string
+    }
+  }
+}
 
 function createStore(): ProgressStore {
   databaseSequence += 1
@@ -57,6 +69,10 @@ describe('ProgressStore', () => {
     expect(summary.bestFrogStreak).toBe(2)
     expect(summary.bestFrogBoardKey).toBe(buildLeaderboardKey(summary.recentRuns[0]))
     expect(summary.accuracy).toBeCloseTo(7 / 8)
+    expect(summary.rewardState).toMatchObject({ balance: 16, lifetimeEarned: 16 })
+    expect(summary.rewardState.settledRunIds).toHaveLength(1)
+    expect(summary.highestFrogStage).toBe(1)
+    expect(summary.highestChaseStage).toBe(0)
   })
 
   it('falls back to instance-local memory when IndexedDB is unavailable', async () => {
@@ -66,7 +82,72 @@ describe('ProgressStore', () => {
 
     expect(await first.saveRun(createRun({ id: 'memory-only' }))).toBe('memory')
     expect((await first.listRuns()).map((run) => run.id)).toEqual(['memory-only'])
+    expect((await first.getRewardState()).balance).toBe(16)
     expect(await second.listRuns()).toEqual([])
+    expect((await second.getRewardState()).balance).toBe(0)
+  })
+
+  it('settles points once and persists an idempotent cosmetic redemption', async () => {
+    const store = createStore()
+    const highValueRun = (id: string) => createRun({
+      id,
+      correctWords: 10_000,
+      correctCharacters: 50_000,
+      mistakes: 0,
+      maxStreak: 10_000,
+    })
+
+    await store.saveRun(highValueRun('reward-run-1'))
+    await store.saveRun(highValueRun('reward-run-1'))
+    await store.saveRun(highValueRun('reward-run-2'))
+    expect(await store.getRewardState()).toMatchObject({ balance: 1_000, lifetimeEarned: 1_000 })
+
+    const redeemed = await store.redeemCosmetic('frog-starlight')
+    expect(redeemed.balance).toBe(200)
+    expect(redeemed.ownedRewardIds).toEqual(['frog-starlight'])
+    expect(redeemed.equippedRewards.frogSkin).toBe('frog-starlight')
+
+    const duplicate = await store.redeemCosmetic('frog-starlight')
+    expect(duplicate.balance).toBe(200)
+    expect(duplicate.redemptions).toHaveLength(1)
+  })
+
+  it('keeps family reward points reserved until a parent confirms', async () => {
+    const store = createStore()
+    for (const id of ['family-run-1', 'family-run-2', 'family-run-3']) {
+      await store.saveRun(createRun({ id, correctWords: 10_000, correctCharacters: 50_000, mistakes: 0 }))
+    }
+
+    const pending = await store.requestFamilyReward('family-notebook')
+    const request = pending.redemptions.find((item) => item.rewardId === 'family-notebook')!
+    expect(pending.balance).toBe(1_500)
+    expect(request.status).toBe('pending')
+    await expect(store.redeemCosmetic('frog-starlight')).rejects.toThrow('可用积分不足')
+
+    const approved = await store.resolveFamilyReward(request.id, true)
+    expect(approved.balance).toBe(0)
+    expect(approved.redemptions.find((item) => item.id === request.id)?.status).toBe('fulfilled')
+    expect((await store.getDashboardSummary()).rewardState.balance).toBe(0)
+  })
+
+  it('upgrades a version-one database without losing run history', async () => {
+    databaseSequence += 1
+    const databaseName = `qwertlearn-v1-${databaseSequence}`
+    const legacyDatabase = await openDB<LegacyDatabase>(databaseName, 1, {
+      upgrade(database) {
+        const runs = database.createObjectStore('runs', { keyPath: 'id' })
+        runs.createIndex('by-completed-at', 'completedAt')
+        runs.createIndex('by-game', 'gameId')
+      },
+    })
+    await legacyDatabase.put('runs', createRun({ id: 'version-one-run', completedAt: 1_000 }))
+    legacyDatabase.close()
+
+    const upgradedStore = new ProgressStore(databaseName)
+    expect((await upgradedStore.listRuns()).map((item) => item.id)).toEqual(['version-one-run'])
+    await upgradedStore.saveRun(createRun({ id: 'version-two-run', completedAt: 2_000 }))
+    expect((await upgradedStore.listRuns()).map((item) => item.id)).toEqual(['version-two-run', 'version-one-run'])
+    expect((await upgradedStore.getRewardState()).settledRunIds).toEqual(['version-two-run'])
   })
 
   it('isolates frog boards and orders the matching board by score', async () => {
@@ -159,5 +240,7 @@ describe('ProgressStore', () => {
 
     await store.clear()
     expect(await store.listRuns()).toEqual([])
+    expect(await store.getRewardState()).toMatchObject({ balance: 0, lifetimeEarned: 0 })
+    expect((await store.getRewardState()).redemptions).toEqual([])
   })
 })

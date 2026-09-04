@@ -61,5 +61,7 @@ describe('leaderboard isolation', () => {
     expect(buildLeaderboardKey({ ...base, difficulty: 2 })).not.toBe(key)
     expect(buildLeaderboardKey({ ...base, speedTier: 2 })).not.toBe(key)
     expect(buildLeaderboardKey({ ...base, rulesVersion: '1.1.0' })).not.toBe(key)
+    expect(buildLeaderboardKey({ ...base, challengeMode: 'endless' })).not.toBe(key)
+    expect(buildLeaderboardKey({ ...base, startStage: 2 })).not.toBe(key)
   })
 })

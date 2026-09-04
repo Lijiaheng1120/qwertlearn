@@ -43,6 +43,19 @@ describe('production architecture contracts', () => {
     expect(source).not.toMatch(/progressStore|indexedDB|localStorage|EXPERIENCE_WORDS|createWordSession/)
   })
 
+  it('keeps reward settlement and redemption behind ProgressStore', () => {
+    const importers = productionTypeScriptFiles()
+      .filter((path) => /from ['"](?:\.\/|\.\.\/core\/)reward-system['"]/.test(readFileSync(path, 'utf8')))
+      .map((path) => relative(sourceRoot, path))
+      .sort()
+
+    expect(importers).toEqual(['core/progress-store.ts'])
+    const progressStore = readSource('core/progress-store.ts')
+    expect(progressStore).toContain('settleRunReward')
+    expect(progressStore).toContain('redeemCosmeticReward')
+    expect(progressStore).toContain('requestFamilyRewardState')
+  })
+
   it.each(gamePages)('%s consumes every required shared game service', (page) => {
     const source = readSource(page)
 

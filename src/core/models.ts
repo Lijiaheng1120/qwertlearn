@@ -23,6 +23,50 @@ export interface WordMemory {
   needsReview: boolean
 }
 
+export type ChallengeMode = 'learning' | 'endless'
+export type RewardKind = 'cosmetic' | 'family'
+export type RewardSlot = 'frogSkin' | 'lilyTheme' | 'cityTheme'
+export type RewardRedemptionStatus = 'pending' | 'fulfilled' | 'rejected'
+
+export interface RewardDefinition {
+  id: string
+  name: string
+  description: string
+  kind: RewardKind
+  cost: number
+  slot?: RewardSlot
+}
+
+export interface RewardRedemption {
+  id: string
+  rewardId: string
+  rewardName: string
+  kind: RewardKind
+  cost: number
+  status: RewardRedemptionStatus
+  requestedAt: number
+  resolvedAt: number | null
+}
+
+export interface RewardState {
+  id: string
+  balance: number
+  lifetimeEarned: number
+  settledRunIds: string[]
+  ownedRewardIds: string[]
+  equippedRewards: Partial<Record<RewardSlot, string>>
+  redemptions: RewardRedemption[]
+}
+
+export interface RunRewardBreakdown {
+  basePoints: number
+  stageBonus: number
+  badgeBonus: number
+  accuracyBonus: number
+  multiplier: number
+  total: number
+}
+
 export const EXPERIENCE_WORDS: WordEntry[] = [
   { id: 'exp-cat', text: 'cat', meaning: '猫', grade: 4, unit: '体验词库', difficulty: 1, tags: ['animal', 'short'] },
   { id: 'exp-book', text: 'book', meaning: '书', grade: 4, unit: '体验词库', difficulty: 1, tags: ['school'] },
@@ -107,6 +151,12 @@ export interface RunResult {
   words: string[]
   wordIds?: string[]
   mistakeWordIds?: string[]
+  challengeMode?: ChallengeMode
+  startStage?: number
+  highestStage?: number
+  badgesRecovered?: number
+  adventurePointsEarned?: number
+  rewardRulesVersion?: string
   usedFullHints: boolean
   remainingDistance?: number
 }
@@ -120,14 +170,26 @@ export function createRunId(gameId: GameId): string {
 
 export function buildLeaderboardKey(run: Pick<RunResult,
   'gameId' | 'mode' | 'wordPackId' | 'difficulty' | 'speedTier' | 'rulesVersion'
->): string {
-  return [run.gameId, run.mode, run.wordPackId, run.difficulty, run.speedTier, run.rulesVersion].join(':')
+> & Partial<Pick<RunResult, 'challengeMode' | 'startStage'>>): string {
+  return [
+    run.gameId,
+    run.mode,
+    run.wordPackId,
+    run.difficulty,
+    run.speedTier,
+    run.rulesVersion,
+    run.challengeMode ?? 'learning',
+    run.startStage ?? 1,
+  ].join(':')
 }
 
 export interface DashboardSummary {
   masteredWords: number
   wrongWordCount: number
   wordMemory: WordMemory[]
+  rewardState: RewardState
+  highestFrogStage: number
+  highestChaseStage: number
   totalMinutes: number
   todayMinutes: number
   accuracy: number
@@ -143,6 +205,17 @@ export const EMPTY_DASHBOARD: DashboardSummary = {
   masteredWords: 0,
   wrongWordCount: 0,
   wordMemory: [],
+  rewardState: {
+    id: 'local',
+    balance: 0,
+    lifetimeEarned: 0,
+    settledRunIds: [],
+    ownedRewardIds: [],
+    equippedRewards: {},
+    redemptions: [],
+  },
+  highestFrogStage: 0,
+  highestChaseStage: 0,
   totalMinutes: 0,
   todayMinutes: 0,
   accuracy: 1,

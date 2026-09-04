@@ -5,8 +5,22 @@ import {
   EXPERIENCE_WORDS,
   type DashboardSummary,
   type GameId,
+  type RewardState,
   type RunResult,
 } from './models'
+import {
+  calculateRunAdventurePoints,
+  createEmptyRewardState,
+  mergeRewardStates,
+  normalizeRewardState,
+  REWARD_RULES_VERSION,
+  REWARD_STATE_ID,
+  redeemCosmeticReward,
+  requestFamilyReward as requestFamilyRewardState,
+  resolveFamilyReward as resolveFamilyRewardState,
+  RewardRuleError,
+  settleRunReward,
+} from './reward-system'
 import { buildWordMemory } from './word-session'
 
 interface QwertLearnDatabase extends DBSchema {
@@ -18,29 +32,55 @@ interface QwertLearnDatabase extends DBSchema {
       'by-game': string
     }
   }
+  'reward-state': {
+    key: string
+    value: RewardState
+  }
 }
 
 export type SaveLocation = 'indexeddb' | 'memory'
 
 const DATABASE_NAME = 'qwertlearn'
-const DATABASE_VERSION = 1
+const DATABASE_VERSION = 2
 
 function canUseIndexedDb(): boolean {
   return typeof indexedDB !== 'undefined'
 }
 
 function normalizeRun(run: RunResult): RunResult {
+  const startStage = Math.max(1, Number.isFinite(run.startStage) ? Math.round(run.startStage!) : 1)
+  const highestStage = Math.max(startStage, Number.isFinite(run.highestStage) ? Math.round(run.highestStage!) : startStage)
   return {
     ...run,
     pausedMs: Number.isFinite(run.pausedMs) ? run.pausedMs : 0,
     usedFullHints: run.usedFullHints ?? true,
     wordIds: Array.isArray(run.wordIds) ? run.wordIds : [],
     mistakeWordIds: Array.isArray(run.mistakeWordIds) ? run.mistakeWordIds : [],
+    challengeMode: run.challengeMode ?? 'learning',
+    startStage,
+    highestStage,
+    badgesRecovered: Math.max(0, Number.isFinite(run.badgesRecovered) ? Math.round(run.badgesRecovered!) : 0),
+    adventurePointsEarned: calculateRunAdventurePoints(run),
+    rewardRulesVersion: REWARD_RULES_VERSION,
   }
 }
 
 function sortByCompletedAt(runs: RunResult[]): RunResult[] {
   return runs.map(normalizeRun).sort((left, right) => right.completedAt - left.completedAt)
+}
+
+function createRedemptionId(): string {
+  const suffix = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`
+  return `reward-${suffix}`
+}
+
+function hasRewardActivity(state: RewardState): boolean {
+  return state.lifetimeEarned > 0
+    || state.ownedRewardIds.length > 0
+    || state.redemptions.length > 0
+    || state.settledRunIds.length > 0
 }
 
 function sortLeaderboard(left: RunResult, right: RunResult): number {
@@ -56,36 +96,116 @@ function sortLeaderboard(left: RunResult, right: RunResult): number {
 
 export class ProgressStore {
   private memoryRuns: RunResult[] = []
+  private memoryRewardState: RewardState = createEmptyRewardState()
+  private memoryRewardStateIsSnapshot = false
   private databasePromise: Promise<IDBPDatabase<QwertLearnDatabase>> | null = null
 
   constructor(private readonly databaseName = DATABASE_NAME) {}
 
   private getDatabase(): Promise<IDBPDatabase<QwertLearnDatabase>> {
     this.databasePromise ??= openDB<QwertLearnDatabase>(this.databaseName, DATABASE_VERSION, {
-      upgrade(database) {
-        const runs = database.createObjectStore('runs', { keyPath: 'id' })
-        runs.createIndex('by-completed-at', 'completedAt')
-        runs.createIndex('by-game', 'gameId')
+      upgrade(database, oldVersion) {
+        if (oldVersion < 1) {
+          const runs = database.createObjectStore('runs', { keyPath: 'id' })
+          runs.createIndex('by-completed-at', 'completedAt')
+          runs.createIndex('by-game', 'gameId')
+        }
+        if (oldVersion < 2) {
+          database.createObjectStore('reward-state', { keyPath: 'id' })
+        }
       },
     })
     return this.databasePromise
   }
 
+  private saveRunToMemory(run: RunResult): void {
+    if (this.memoryRuns.some((item) => item.id === run.id)) return
+    this.memoryRuns.push(run)
+    this.memoryRewardState = settleRunReward(this.memoryRewardState, run)
+  }
+
   async saveRun(run: RunResult): Promise<SaveLocation> {
     const normalizedRun = normalizeRun(run)
     if (!canUseIndexedDb()) {
-      this.memoryRuns.push(normalizedRun)
+      this.saveRunToMemory(normalizedRun)
       return 'memory'
     }
 
     try {
       const database = await this.getDatabase()
-      await database.put('runs', normalizedRun)
+      const transaction = database.transaction(['runs', 'reward-state'], 'readwrite')
+      const runs = transaction.objectStore('runs')
+      const existingRun = await runs.get(normalizedRun.id)
+      if (!existingRun) {
+        const rewardStore = transaction.objectStore('reward-state')
+        const rewardState = normalizeRewardState(await rewardStore.get(REWARD_STATE_ID))
+        await runs.put(normalizedRun)
+        await rewardStore.put(settleRunReward(rewardState, normalizedRun))
+      }
+      await transaction.done
       return 'indexeddb'
     } catch {
-      this.memoryRuns.push(normalizedRun)
+      this.saveRunToMemory(normalizedRun)
       return 'memory'
     }
+  }
+
+  async getRewardState(): Promise<RewardState> {
+    const fallback = normalizeRewardState(this.memoryRewardState)
+    if (!canUseIndexedDb() || this.memoryRewardStateIsSnapshot) return fallback
+
+    try {
+      const database = await this.getDatabase()
+      const persisted = normalizeRewardState(await database.get('reward-state', REWARD_STATE_ID))
+      return hasRewardActivity(fallback) ? mergeRewardStates(persisted, fallback) : persisted
+    } catch {
+      return fallback
+    }
+  }
+
+  private async updateRewardState(update: (state: RewardState) => RewardState): Promise<RewardState> {
+    if (!canUseIndexedDb()) {
+      this.memoryRewardState = normalizeRewardState(update(this.memoryRewardState))
+      return normalizeRewardState(this.memoryRewardState)
+    }
+
+    let intendedState: RewardState | null = null
+    try {
+      const database = await this.getDatabase()
+      const transaction = database.transaction('reward-state', 'readwrite')
+      const store = transaction.objectStore('reward-state')
+      const current = normalizeRewardState(await store.get(REWARD_STATE_ID))
+      intendedState = normalizeRewardState(update(current))
+      await store.put(intendedState)
+      await transaction.done
+      return normalizeRewardState(intendedState)
+    } catch (error) {
+      if (error instanceof RewardRuleError) throw error
+      if (intendedState) {
+        this.memoryRewardState = normalizeRewardState(intendedState)
+        this.memoryRewardStateIsSnapshot = true
+      } else {
+        this.memoryRewardState = normalizeRewardState(update(this.memoryRewardState))
+      }
+      return normalizeRewardState(this.memoryRewardState)
+    }
+  }
+
+  async redeemCosmetic(rewardId: string): Promise<RewardState> {
+    const now = Date.now()
+    const redemptionId = createRedemptionId()
+    return this.updateRewardState((state) => redeemCosmeticReward(state, rewardId, redemptionId, now))
+  }
+
+  async requestFamilyReward(rewardId: string): Promise<RewardState> {
+    const now = Date.now()
+    const redemptionId = createRedemptionId()
+    return this.updateRewardState((state) => requestFamilyRewardState(state, rewardId, redemptionId, now))
+  }
+
+  async resolveFamilyReward(redemptionId: string, approved: boolean): Promise<RewardState> {
+    const now = Date.now()
+    return this.updateRewardState((state) => resolveFamilyRewardState(state, redemptionId, approved, now))
   }
 
   async listRuns(): Promise<RunResult[]> {
@@ -127,8 +247,8 @@ export class ProgressStore {
   }
 
   async getDashboardSummary(): Promise<DashboardSummary> {
-    const runs = await this.listRuns()
-    if (runs.length === 0) return { ...EMPTY_DASHBOARD }
+    const [runs, rewardState] = await Promise.all([this.listRuns(), this.getRewardState()])
+    if (runs.length === 0) return { ...EMPTY_DASHBOARD, rewardState }
 
     const words = new Set(runs.flatMap((run) => run.words))
     const wordMemory = buildWordMemory(runs, EXPERIENCE_WORDS)
@@ -154,6 +274,13 @@ export class ProgressStore {
       masteredWords: words.size,
       wrongWordCount: wordMemory.filter((word) => word.needsReview).length,
       wordMemory,
+      rewardState,
+      highestFrogStage: runs
+        .filter((run) => run.gameId === 'frog')
+        .reduce((highest, run) => Math.max(highest, run.highestStage ?? 1), 0),
+      highestChaseStage: runs
+        .filter((run) => run.gameId === 'chase')
+        .reduce((highest, run) => Math.max(highest, run.highestStage ?? 1), 0),
       totalMinutes: Math.round(runs.reduce((sum, run) => sum + run.durationMs, 0) / 60_000),
       todayMinutes: Math.round(todayRuns.reduce((sum, run) => sum + run.durationMs, 0) / 60_000),
       accuracy: correctCharacters + mistakes === 0 ? 1 : correctCharacters / (correctCharacters + mistakes),
@@ -170,10 +297,15 @@ export class ProgressStore {
 
   async clear(): Promise<void> {
     this.memoryRuns = []
+    this.memoryRewardState = createEmptyRewardState()
+    this.memoryRewardStateIsSnapshot = false
     if (!canUseIndexedDb()) return
     try {
       const database = await this.getDatabase()
-      await database.clear('runs')
+      const transaction = database.transaction(['runs', 'reward-state'], 'readwrite')
+      await transaction.objectStore('runs').clear()
+      await transaction.objectStore('reward-state').clear()
+      await transaction.done
     } catch {
       // Memory state is already clear; unavailable IndexedDB needs no further action.
     }

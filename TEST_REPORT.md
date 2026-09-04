@@ -1,7 +1,7 @@
 # QwertLearn 自动测试报告
 
 > 验证日期：2026-09-03
-> 产品基线：`PRODUCT_FRAMEWORK.md` 0.3
+> 产品基线：`PRODUCT_FRAMEWORK.md` 0.4
 > 测试框架：Vitest 4.1.11、Testing Library、jsdom、fake-indexeddb 6.2.5、V8 Coverage
 
 ## 1. 结论
@@ -11,7 +11,7 @@ QwertLearn 当前自动化质量门槛全部通过：
 | 检查 | 结果 |
 |---|---|
 | TypeScript 严格类型检查 | 通过 |
-| Vitest 全量测试 | 17 个文件，80 项通过，0 项失败 |
+| Vitest 全量测试 | 18 个文件，90 项通过，0 项失败 |
 | V8 覆盖率门槛 | 通过 |
 | Vite 生产构建 | 通过 |
 | PWA Service Worker | 生成成功，预缓存 18 项 |
@@ -24,8 +24,8 @@ QwertLearn 当前自动化质量门槛全部通过：
 
 | 范围 | 语句 | 分支 | 函数 | 行 |
 |---|---:|---:|---:|---:|
-| 全部生产代码 | 88.94% | 82.19% | 87.69% | 91.25% |
-| `src/core` | 87.34% | 76.56% | 90.56% | 89.97% |
+| 全部生产代码 | 88.17% | 81.12% | 87.97% | 90.90% |
+| `src/core` | 86.17% | 76.45% | 90.34% | 89.56% |
 | `src/pages` | 88.98% | 85.22% | 84.09% | 91.24% |
 | `src/ui` | 100% | 100% | 100% | 100% |
 
@@ -43,7 +43,7 @@ QwertLearn 当前自动化质量门槛全部通过：
 | 测试文件 | 数量 | 主要范围 |
 |---|---:|---|
 | `src/test/app-routing.test.tsx` | 2 | Hash 路由、页面切换、共享音频和摘要刷新 |
-| `src/test/architecture-contract.test.ts` | 10 | 唯一键盘监听边界、共享输入、随机选词、错题本数据边界、存储、音频和规则版本 |
+| `src/test/architecture-contract.test.ts` | 11 | 唯一键盘监听边界、共享输入、随机选词、错题本与奖励数据边界、存储、音频和规则版本 |
 | `src/test/audio-service.test.ts` | 6 | 设置持久化、静音同步、输出注销、页面隐藏和语音 ducking |
 | `src/test/game-pages-routing.test.tsx` | 1 | training、frog、chase 页面分派 |
 | `src/test/game-pages.test.tsx` | 11 | 三个游戏的计时、公平暂停、成功/失败、重开、保存和降级 |
@@ -52,14 +52,15 @@ QwertLearn 当前自动化质量门槛全部通过：
 | `src/test/icon.test.tsx` | 1 | 全部 16 个项目自有 SVG 图标 |
 | `src/test/models.test.ts` | 6 | 自适应难度中间区间及上下界 |
 | `src/test/parent-dashboard.test.tsx` | 2 | 聚合数据、声音面板、音量和全部已实现入口 |
-| `src/test/progress-store.test.ts` | 6 | IndexedDB、内存降级、旧记录、排行榜、摘要和清理 |
+| `src/test/progress-store.test.ts` | 9 | IndexedDB v2、旧库迁移、防重复积分、奖励兑换、内存降级、排行榜、摘要和清理 |
 | `src/test/pwa-assets.test.ts` | 6 | PNG 尺寸、manifest、maskable、Apple Touch、预缓存和授权登记 |
+| `src/test/reward-system.test.ts` | 6 | 积分拆分、阶段倍率、单局封顶、唯一结算、皮肤兑换与家庭奖励确认 |
 | `src/test/run-clock.test.ts` | 4 | 首键开始、暂停时间、幂等与冻结结果 |
 | `src/test/typing-engine.test.ts` | 6 | 正确/错误输入、忽略键、完成边界、Backspace 和重置 |
 | `src/test/use-typing-session.test.tsx` | 5 | 唯一全局监听、表单排除、修饰键、目标变化和重新启用 |
 | `src/test/word-book-page.test.tsx` | 3 | 儿童三词路线、家长明细展开、空状态、复习启动与页面导航 |
 | `src/test/word-session.test.ts` | 4 | 单局去重、最近词避让、错词优先和两次无错退出复习 |
-| **合计** | **80** | **17 个测试文件** |
+| **合计** | **90** | **18 个测试文件** |
 
 ## 4. 产品规范映射
 
@@ -87,6 +88,17 @@ QwertLearn 当前自动化质量门槛全部通过：
 - 空状态提供积极提示并可直接开始新词冒险；
 - 复习入口进入 Frog 的共享随机选词流程，错词仍按既有配额优先且不会形成固定队列；
 - 页面只消费 App 提供的 `DashboardSummary`，不直接访问 IndexedDB、词库或选词服务。
+
+### 双层成长与奖励数据层
+
+- 原型 C“双轨成长与家庭奖励柜”已确认为正式交互方向；
+- `RunResult` 已支持学习/无尽模式、起始阶段、最高阶段、追回徽章数与奖励规则版本；
+- `score` 与可消费 `adventurePoints` 分离，积分由 `ProgressStore` 根据唯一 run ID 结算；
+- IndexedDB 升级到版本 2，旧版 runs store 与历史成绩无损保留；
+- 同一 run ID 重复保存不会重复发放积分，每局积分设有效时长门槛和 500 分上限；
+- 虚拟皮肤兑换会即时扣分、入库并装备，重复兑换保持幂等；
+- 家庭实物奖励先建立待确认申请并保留积分，家长确认后才扣除，拒绝不扣分；
+- IndexedDB 不可用时，积分与奖励保持在当前 ProgressStore 实例的内存降级状态。
 
 ### 公平计时
 
@@ -138,7 +150,7 @@ QwertLearn 当前自动化质量门槛全部通过：
 
 - Vite 8.2.2 构建成功；
 - PWA `generateSW` 成功；
-- 预缓存 18 项，约 1518.53 KiB；
+- 预缓存 18 项，约 1525.53 KiB；
 - 首页 `#/`、青蛙 `#/frog`、错题本 `#/wordbook`、家长中心 `#/parent` 在本地生产预览中正常渲染；
 - 错题本桌面截图完成视觉检查，布局无截断，浏览器页面错误为空。
 
