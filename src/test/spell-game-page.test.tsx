@@ -81,6 +81,9 @@ describe('SpellGamePage', () => {
     const { container } = renderGame()
 
     expect(screen.getByText('字母小火车')).toBeInTheDocument()
+    const train = container.querySelector('.spell-train')!
+    expect(train.firstElementChild).toHaveClass('spell-carriages')
+    expect(train.lastElementChild).toHaveClass('spell-engine')
     expect(screen.getByText('猫')).toBeInTheDocument()
     expect(screen.getByText('轨道旁乱序货物：3 / 3 个字母')).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: /年级|未来初中/ })).toHaveLength(4)

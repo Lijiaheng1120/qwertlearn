@@ -58,6 +58,7 @@ describe('production architecture contracts', () => {
     expect(progressStore).toContain('settleRunReward')
     expect(progressStore).toContain('redeemCosmeticReward')
     expect(progressStore).toContain('requestFamilyRewardState')
+    expect(progressStore).toContain('requestCashRewardState')
   })
 
   it.each(keyboardGamePages)('%s consumes the shared Typing Session and game services', (page) => {
@@ -82,6 +83,11 @@ describe('production architecture contracts', () => {
     expect(source).toContain("from '../core/run-clock'")
     expect(source).toMatch(/new ActiveRunClock\(\)/)
     expect(source).toContain('SPELL_AUTO_ADVANCE_DELAY_MS')
+    expect(source.indexOf('className="spell-carriages"')).toBeLessThan(source.indexOf('className="spell-engine"'))
+    const styles = readSource('styles.css')
+    expect(styles).toContain('@keyframes spell-train-depart { 35% { transform: translateX(12px); } 100% { transform: translateX(115%); } }')
+    expect(styles).toContain('@keyframes spell-train-depart-mobile { 35% { transform: scale(.84) translateX(12px); } 100% { transform: scale(.84) translateX(130%); } }')
+    expect(styles).not.toMatch(/@keyframes spell-train-depart[^\n]*translateX\(-/)
   })
 
   it('keeps the frog attached to the shared moving-pad motion helper', () => {

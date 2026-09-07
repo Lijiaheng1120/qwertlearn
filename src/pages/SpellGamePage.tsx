@@ -527,7 +527,6 @@ export function SpellGamePage({
                 className={`spell-train ${currentWord.text.length > 6 ? 'compact' : ''} ${status === 'departing' ? 'departing' : ''}`}
                 style={{ '--spell-compact-carriage-width': `${compactCarriageWidth}px` } as CSSProperties}
               >
-                <div className="spell-engine" aria-hidden="true"><span>拼</span><b>🚂</b></div>
                 <div
                   className="spell-carriages"
                   aria-label={`已正确输入 ${typing.snapshot.typed.length} 个字母，共 ${currentWord.text.length} 个字母`}
@@ -544,6 +543,7 @@ export function SpellGamePage({
                     )
                   })}
                 </div>
+                <div className="spell-engine" aria-hidden="true"><span>拼</span><b>🚂</b></div>
               </div>
             </div>
 

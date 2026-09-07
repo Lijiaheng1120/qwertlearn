@@ -50,6 +50,7 @@ function createRun(overrides: Partial<RunResult> = {}): RunResult {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
 })
 
 describe('ProgressStore', () => {
@@ -131,6 +132,26 @@ describe('ProgressStore', () => {
     expect(approved.balance).toBe(0)
     expect(approved.redemptions.find((item) => item.id === request.id)?.status).toBe('fulfilled')
     expect((await store.getDashboardSummary()).rewardState.balance).toBe(0)
+  })
+
+  it('persists a variable cash wish and deducts points only after parent approval', async () => {
+    const monday = new Date(2026, 8, 7, 9).getTime()
+    vi.spyOn(Date, 'now').mockReturnValue(monday)
+    const store = createStore()
+    for (const id of ['cash-run-1', 'cash-run-2', 'cash-run-3', 'cash-run-4']) {
+      await store.saveRun(createRun({ id, correctWords: 10_000, correctCharacters: 50_000, mistakes: 0 }))
+    }
+
+    expect(store.getCashRewardPolicy(await store.getRewardState()).maxRequestYuan).toBe(2)
+    const pending = await store.requestCashReward(2)
+    const request = pending.redemptions.find((item) => item.rewardId === 'family-cash')!
+    expect(pending.balance).toBe(2_000)
+    expect(request).toMatchObject({ cost: 2_000, cashAmountYuan: 2, cashRatePointsPerYuan: 1_000, status: 'pending' })
+    expect(store.getSpendableAdventurePoints(pending)).toBe(0)
+
+    const approved = await store.resolveFamilyReward(request.id, true)
+    expect(approved.balance).toBe(0)
+    expect(approved.redemptions.find((item) => item.id === request.id)?.status).toBe('fulfilled')
   })
 
   it('upgrades a version-one database without losing run history', async () => {

@@ -3,7 +3,9 @@ import type { RunResult } from '../core/models'
 import {
   calculateRunRewardBreakdown,
   createEmptyRewardState,
+  getCashRewardPolicy,
   redeemCosmeticReward,
+  requestCashReward,
   requestFamilyReward,
   resolveFamilyReward,
   settleRunReward,
@@ -102,6 +104,49 @@ describe('reward system', () => {
     const rejected = resolveFamilyReward(pending, 'request-1', false, 12)
     expect(rejected.balance).toBe(2_000)
     expect(rejected.redemptions[0].status).toBe('rejected')
+  })
+
+  it('creates one integer cash wish at 1,000 points per yuan and enforces the weekly budget', () => {
+    const monday = new Date(2026, 8, 7, 9).getTime()
+    const funded = { ...createEmptyRewardState(), balance: 20_000, lifetimeEarned: 20_000 }
+
+    const pending = requestCashReward(funded, 5, 'cash-1', monday)
+    expect(pending.balance).toBe(20_000)
+    expect(pending.redemptions[0]).toMatchObject({
+      rewardId: 'family-cash',
+      rewardName: '现金奖励 ¥5',
+      cost: 5_000,
+      status: 'pending',
+      cashAmountYuan: 5,
+      cashRatePointsPerYuan: 1_000,
+    })
+    expect(spendableAdventurePoints(pending)).toBe(15_000)
+    expect(() => requestCashReward(pending, 1, 'cash-duplicate', monday)).toThrow('已有一笔现金愿望')
+    expect(() => requestCashReward(funded, 1.5, 'cash-decimal', monday)).toThrow('必须是正整数')
+
+    const rejected = resolveFamilyReward(pending, 'cash-1', false, monday + 1)
+    expect(rejected.balance).toBe(20_000)
+    expect(spendableAdventurePoints(rejected)).toBe(20_000)
+    expect(rejected.redemptions[0].status).toBe('rejected')
+
+    const fulfilled = resolveFamilyReward(pending, 'cash-1', true, monday + 1)
+    expect(fulfilled.balance).toBe(15_000)
+    expect(getCashRewardPolicy(fulfilled, monday + 2)).toMatchObject({
+      pointsPerYuan: 1_000,
+      weeklyBudgetYuan: 10,
+      fulfilledThisWeekYuan: 5,
+      remainingBudgetYuan: 5,
+      maxRequestYuan: 5,
+    })
+    expect(() => requestCashReward(fulfilled, 6, 'cash-over-budget', monday + 2)).toThrow('超过本周剩余现金预算')
+    expect(requestCashReward(fulfilled, 5, 'cash-2', monday + 2).redemptions.at(-1)?.cost).toBe(5_000)
+
+    const nextMonday = new Date(2026, 8, 14, 9).getTime()
+    expect(getCashRewardPolicy(fulfilled, nextMonday)).toMatchObject({
+      fulfilledThisWeekYuan: 0,
+      remainingBudgetYuan: 10,
+      maxRequestYuan: 10,
+    })
   })
 
   it('deducts approved rewards and makes cosmetic redemption idempotent', () => {

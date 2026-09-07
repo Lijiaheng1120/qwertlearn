@@ -19,6 +19,7 @@ const REWARD_ART: Record<string, string> = {
   'city-sunset': '🌇',
   'family-notebook': '📓',
   'family-color-pens': '🖍️',
+  'family-cash': '¥',
 }
 
 function redemptionLabel(status: 'pending' | 'fulfilled' | 'rejected'): string {
@@ -35,12 +36,29 @@ export function RewardCabinetPage({
   onRewardChanged,
 }: RewardCabinetPageProps) {
   const [rewardState, setRewardState] = useState<RewardState>(summary.rewardState)
+  const [cashAmountYuan, setCashAmountYuan] = useState(1)
   const [busyRewardId, setBusyRewardId] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const catalog = progressStore.getRewardCatalog()
   const spendable = progressStore.getSpendableAdventurePoints(rewardState)
   const reserved = Math.max(0, rewardState.balance - spendable)
+  const cashPolicy = progressStore.getCashRewardPolicy(rewardState)
+  const pendingCashRequest = rewardState.redemptions.find((item) => item.cashAmountYuan != null && item.status === 'pending')
+  const selectedCashAmount = pendingCashRequest?.cashAmountYuan ?? Math.min(
+    Math.max(1, cashAmountYuan),
+    Math.max(1, cashPolicy.maxRequestYuan),
+  )
+  const cashCost = pendingCashRequest?.cost ?? selectedCashAmount * cashPolicy.pointsPerYuan
+  const cashBusy = busyRewardId === 'cash-request'
+  const cashRequestDisabled = cashBusy || Boolean(pendingCashRequest) || cashPolicy.maxRequestYuan < 1
+  const cashButtonLabel = pendingCashRequest
+    ? '等待家长确认'
+    : cashPolicy.remainingBudgetYuan < 1
+      ? '本周额度已用完'
+      : cashPolicy.maxRequestYuan < 1
+        ? `还差 ${Math.max(0, cashPolicy.pointsPerYuan - spendable)} 分`
+        : '请家长确认'
 
   useEffect(() => setRewardState(summary.rewardState), [summary.rewardState])
 
@@ -70,6 +88,23 @@ export function RewardCabinetPage({
       await onRewardChanged()
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : '奖励操作暂时没有完成，请稍后重试。')
+    } finally {
+      setBusyRewardId(null)
+    }
+  }
+
+  const performCashRequest = async () => {
+    const amountYuan = selectedCashAmount
+    setBusyRewardId('cash-request')
+    setNotice(null)
+    setError(null)
+    try {
+      const nextState = await progressStore.requestCashReward(amountYuan)
+      setRewardState(nextState)
+      setNotice(`¥${amountYuan} 现金愿望已送到家长中心，已保留 ${amountYuan * cashPolicy.pointsPerYuan} 积分，确认前不会扣除。`)
+      await onRewardChanged()
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : '现金愿望暂时没有提交成功，请稍后重试。')
     } finally {
       setBusyRewardId(null)
     }
@@ -125,7 +160,7 @@ export function RewardCabinetPage({
           <div>
             <p className="eyebrow">双轨成长 · 本机保存</p>
             <h1>把每次认真练习，变成看得见的收获</h1>
-            <p>外观兑换会立即装备；本子和彩色笔只是家庭愿望，必须由家长在本机确认。</p>
+            <p>外观兑换会立即装备；本子、彩色笔和现金都只是家庭愿望，必须由家长在本机确认。</p>
           </div>
           <div className="points-wallet" aria-label={`积分余额 ${rewardState.balance}，可用 ${spendable}`}>
             <span><Icon name="star" />冒险积分</span>
@@ -144,6 +179,47 @@ export function RewardCabinetPage({
         <section className="reward-section" aria-labelledby="virtual-rewards-title">
           <header><div><span>立即兑换</span><h2 id="virtual-rewards-title">冒险外观</h2></div><p>只改变颜色和主题，不增加时间、生命或排行榜优势。</p></header>
           <div className="reward-grid">{cosmeticRewards.map(renderReward)}</div>
+        </section>
+
+        <section className="reward-section cash-reward-section" aria-labelledby="cash-reward-title">
+          <header>
+            <div><span>家长线下兑现</span><h2 id="cash-reward-title">积分兑换现金愿望</h2></div>
+            <strong className="cash-rate-badge">{cashPolicy.pointsPerYuan} 积分 = ¥1</strong>
+          </header>
+          <div className="cash-request-card">
+            <div className="cash-request-copy">
+              <span>申请现金奖励</span>
+              <h3>选择金额，再请家长同意</h3>
+              <p>每周最多 ¥{cashPolicy.weeklyBudgetYuan}，本周还剩 ¥{cashPolicy.remainingBudgetYuan}。提交后只是先留住积分，不会马上拿到钱；家长同意时才扣积分。</p>
+              <dl>
+                <div><dt>当前可用</dt><dd>{spendable} 积分</dd></div>
+                <div><dt>本次需要</dt><dd>{cashCost} 积分</dd></div>
+              </dl>
+            </div>
+            <div className="cash-request-controls">
+              <div className="cash-stepper" aria-label="选择现金愿望金额">
+                <button
+                  aria-label="减少一元"
+                  disabled={Boolean(pendingCashRequest) || selectedCashAmount <= 1}
+                  onClick={() => setCashAmountYuan((amount) => Math.max(1, amount - 1))}
+                >−</button>
+                <div className="cash-value" aria-live="polite"><strong>¥{selectedCashAmount}</strong><small>{cashCost} 积分</small></div>
+                <button
+                  aria-label="增加一元"
+                  disabled={Boolean(pendingCashRequest) || selectedCashAmount >= cashPolicy.maxRequestYuan}
+                  onClick={() => setCashAmountYuan((amount) => Math.min(cashPolicy.maxRequestYuan, amount + 1))}
+                >＋</button>
+              </div>
+              <button className="cash-submit" disabled={cashRequestDisabled} onClick={() => void performCashRequest()}>
+                {cashBusy ? '提交中…' : cashButtonLabel}
+              </button>
+            </div>
+            <p className="cash-safety-note">
+              <strong>这不是马上付款：</strong>系统不会自动转账，也不用填写收款账号或地址；家长同意后由家长在线下兑现。
+              {!pendingCashRequest && cashPolicy.maxRequestYuan < 1 && cashPolicy.remainingBudgetYuan > 0
+                && <span>先完成练习，赚够 {cashPolicy.pointsPerYuan} 积分就能申请 ¥1。</span>}
+            </p>
+          </div>
         </section>
 
         <section className="reward-section family-shelf" aria-labelledby="family-rewards-title">

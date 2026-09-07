@@ -32,12 +32,17 @@ export function ParentDashboard({ summary, audioSettings, navigate, toggleAudio,
   }
 
   const resolveFamilyReward = async (redemptionId: string, approved: boolean) => {
+    const request = rewardState.redemptions.find((item) => item.id === redemptionId)
     setBusyRedemptionId(redemptionId)
     setRewardNotice(null)
     try {
       const nextState = await progressStore.resolveFamilyReward(redemptionId, approved)
       setRewardState(nextState)
-      setRewardNotice(approved ? '家庭奖励已确认，积分已经扣除。' : '申请已拒绝，本次没有扣除积分。')
+      setRewardNotice(approved
+        ? request?.cashAmountYuan != null
+          ? `现金愿望已确认，${request.cost} 积分已经扣除，请家长线下兑现 ¥${request.cashAmountYuan}。`
+          : '家庭奖励已确认，积分已经扣除。'
+        : '申请已拒绝，本次没有扣除积分。')
       await onRewardChanged()
     } catch (error) {
       setRewardNotice(error instanceof Error ? error.message : '处理申请时出现问题，请稍后重试。')
@@ -111,17 +116,26 @@ export function ParentDashboard({ summary, audioSettings, navigate, toggleAudio,
             <div><span>仅在本机处理</span><h3 id="family-approval-title">家庭奖励确认</h3></div>
             <strong>余额 {rewardState.balance} 分</strong>
           </header>
-          <p>孩子只能提交愿望。批准后才扣除积分；拒绝不会扣分，系统不会购买、配送或收集地址。</p>
+          <p>孩子只能提交愿望。批准后才扣除积分；现金由家长线下兑现，系统不会自动转账，也不收集儿童账户、地址或收款信息。</p>
           {rewardNotice && <p className="family-reward-notice" role="status">{rewardNotice}</p>}
           {pendingFamilyRewards.length === 0
             ? <div className="family-reward-empty">当前没有待确认愿望。<button onClick={() => navigate('rewards')}>查看孩子的奖励柜</button></div>
             : <div className="family-request-list">{pendingFamilyRewards.map((request) => (
                 <article key={request.id}>
-                  <span aria-hidden="true">🎁</span>
-                  <div><strong>{request.rewardName}</strong><small>需要 {request.cost} 积分 · 申请后积分仍未扣除</small></div>
+                  <span aria-hidden="true">{request.cashAmountYuan != null ? '¥' : '🎁'}</span>
+                  <div>
+                    <strong>{request.rewardName}</strong>
+                    <small>{request.cashAmountYuan != null
+                      ? `现金 ¥${request.cashAmountYuan} · ${request.cashRatePointsPerYuan ?? 1_000} 积分/元 · 共需 ${request.cost} 积分`
+                      : `需要 ${request.cost} 积分`} · 申请后积分仍未扣除</small>
+                  </div>
                   <div className="family-request-actions">
                     <button disabled={busyRedemptionId === request.id} onClick={() => void resolveFamilyReward(request.id, false)} aria-label={`拒绝 ${request.rewardName}`}>拒绝</button>
-                    <button disabled={busyRedemptionId === request.id} onClick={() => void resolveFamilyReward(request.id, true)} aria-label={`批准 ${request.rewardName}`}>批准并扣分</button>
+                    <button
+                      disabled={busyRedemptionId === request.id}
+                      onClick={() => void resolveFamilyReward(request.id, true)}
+                      aria-label={request.cashAmountYuan != null ? `批准并线下兑现 ${request.rewardName}` : `批准 ${request.rewardName}`}
+                    >{request.cashAmountYuan != null ? '批准并线下兑现' : '批准并扣分'}</button>
                   </div>
                 </article>
               ))}</div>}

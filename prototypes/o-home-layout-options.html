@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QwertLearn 首页排版方案</title>
+  <style>
+    :root {
+      color: #17353b;
+      background: #edf7e3;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      --ink: #17353b;
+      --muted: #53686c;
+      --paper: #fffdf4;
+      --green: #3cae70;
+      --green-dark: #238653;
+      --yellow: #ffd96a;
+      --orange: #ff8f6c;
+      --blue: #5aa9e6;
+      --shadow: 0 18px 50px rgba(35, 92, 87, .14);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 28px; background: linear-gradient(180deg, #d6f3ff, #f2fadf); }
+    button { font: inherit; color: inherit; }
+    .page-heading { width: min(1240px, 100%); margin: 0 auto 22px; }
+    .page-heading small { color: var(--green-dark); font-weight: 900; letter-spacing: 1.4px; }
+    .page-heading h1 { margin: 5px 0 7px; font-size: 34px; letter-spacing: -1.5px; }
+    .page-heading p { margin: 0; color: var(--muted); font-weight: 650; }
+    .option { width: min(1240px, 100%); margin: 0 auto 28px; padding: 16px; border: 2px solid rgba(23,53,59,.1); border-radius: 28px; background: rgba(255,255,255,.72); box-shadow: 0 14px 40px rgba(35,92,87,.1); }
+    .option-header { padding: 3px 5px 14px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+    .option-title { display: flex; align-items: center; gap: 10px; }
+    .option-title b { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 12px; color: #fff; background: var(--green-dark); }
+    .option-title h2 { margin: 0; font-size: 21px; }
+    .option-title span { padding: 5px 9px; border-radius: 999px; color: #715407; background: #fff0b4; font-size: 11px; font-weight: 900; }
+    .option-header p { max-width: 540px; margin: 0; color: var(--muted); text-align: right; font-size: 12px; font-weight: 650; }
+    .screen { overflow: hidden; border: 3px solid rgba(23,53,59,.11); border-radius: 24px; background: linear-gradient(180deg, #ccefff 0 36%, #f5fbdf 36%); box-shadow: var(--shadow); }
+    .topbar { height: 58px; margin: 14px 16px 0; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; border: 2px solid rgba(23,53,59,.08); border-radius: 18px; background: rgba(255,253,244,.94); }
+    .brand { display: flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 950; }
+    .brand i { width: 34px; height: 34px; display: grid; place-items: center; border: 2px solid rgba(23,53,59,.12); border-radius: 11px; background: var(--yellow); font-style: normal; }
+    .nav { padding: 4px; display: flex; gap: 3px; border-radius: 12px; background: #edf5ea; }
+    .nav span { padding: 7px 12px; color: #688078; border-radius: 9px; font-size: 10px; font-weight: 800; }
+    .nav span:first-child { color: #fff; background: var(--green-dark); }
+    .profile { padding: 7px 10px; border-radius: 11px; background: #fff1d5; font-size: 10px; font-weight: 900; }
+    .hero { padding: 18px 34px 13px; display: flex; align-items: end; justify-content: space-between; gap: 20px; }
+    .hero small { color: var(--green-dark); font-size: 10px; font-weight: 900; letter-spacing: 1px; }
+    .hero h3 { margin: 4px 0; font-size: 28px; letter-spacing: -1px; }
+    .hero p { margin: 0; color: var(--muted); font-size: 11px; font-weight: 650; }
+    .goal { width: 220px; padding: 11px 13px; border: 2px solid rgba(23,53,59,.07); border-radius: 14px; background: rgba(255,253,244,.9); }
+    .goal div:first-child { display: flex; justify-content: space-between; font-size: 10px; font-weight: 900; }
+    .goal i { height: 7px; margin-top: 7px; display: block; border-radius: 99px; background: #dcebdc; }
+    .map { min-height: 500px; margin: 0 24px 22px; padding: 34px; overflow: hidden; border: 3px solid rgba(23,53,59,.1); border-radius: 27px; background: linear-gradient(180deg, #dff6ff 0 36%, #c6ec9f 36% 65%, #9fda7d 65%); position: relative; }
+    .map::before { content: ""; width: 180px; height: 180px; position: absolute; right: 42px; top: 24px; border-radius: 50%; background: radial-gradient(circle, var(--yellow) 0 37%, rgba(255,217,106,.22) 38% 53%, transparent 54%); }
+    .map::after { content: ""; position: absolute; left: -4%; right: -4%; bottom: -135px; height: 245px; border-radius: 50%; background: #7acb77; opacity: .55; }
+    .game-card { padding: 16px; border: 3px solid #fff; border-radius: 20px; background: rgba(255,253,244,.97); box-shadow: 0 14px 25px rgba(33,80,67,.16); position: relative; z-index: 2; }
+    .game-card .art { height: 42px; display: flex; align-items: end; gap: 5px; }
+    .game-card .art i { display: block; font-style: normal; }
+    .game-card .tag { margin-top: 9px; display: inline-flex; padding: 5px 8px; border-radius: 999px; color: #176643; background: #dff2df; font-size: 9px; font-weight: 900; }
+    .game-card h4 { margin: 7px 0 3px; font-size: 18px; letter-spacing: -.5px; }
+    .game-card p { min-height: 31px; margin: 0 0 10px; color: var(--muted); font-size: 10px; font-weight: 650; line-height: 1.45; }
+    .cta { display: flex; align-items: center; justify-content: space-between; font-size: 10px; font-weight: 900; }
+    .cta b { width: 27px; height: 27px; display: grid; place-items: center; border-radius: 9px; color: #fff; background: var(--green-dark); }
+    .frog-art i:first-child { width: 46px; height: 31px; border-radius: 50% 50% 45% 45%; background: #64bd67; box-shadow: inset 0 -6px #4a9d50; }
+    .frog-art i:last-child { width: 58px; height: 27px; padding-top: 7px; border-radius: 50%; color: #fff; background: #4d9f52; text-align: center; font-size: 9px; font-weight: 900; }
+    .garden-art i { width: 62px; padding: 8px 4px; border: 2px solid #d9e7d4; border-radius: 9px; background: #fff; text-align: center; font-size: 9px; font-weight: 900; }
+    .garden-art i:last-child { color: #fff; border-color: #70b69a; background: #70b69a; }
+    .train-art i { width: 32px; height: 32px; display: grid !important; place-items: center; border: 2px solid #244d5e; border-radius: 7px; color: #245e7a; background: #fff1b9; font-size: 11px; font-weight: 950; }
+    .train-art i:first-child { width: 42px; color: #fff; background: #ed8b68; }
+    .city-art i { width: 26px; background: #7cb3d2; }
+    .city-art i:nth-child(1) { height: 28px; }
+    .city-art i:nth-child(2) { height: 40px; background: #ea9a7a; }
+    .city-art i:nth-child(3) { height: 33px; background: #6999c3; }
+
+    /* A: balanced grid */
+    .grid-map { padding-inline: 13%; display: grid; grid-template-columns: 1fr 1fr; gap: 20px 34px; }
+    .grid-map .game-card { min-height: 201px; }
+    .grid-map .game-card:nth-child(2), .grid-map .game-card:nth-child(4) { transform: translateY(18px); }
+
+    /* B: route */
+    .route-map { padding: 64px 27px 42px; display: grid; grid-template-columns: repeat(4, 1fr); align-items: center; gap: 17px; }
+    .route-map .route-line { height: 12px; position: absolute; left: 8%; right: 8%; top: 49%; z-index: 1; border-radius: 99px; background: repeating-linear-gradient(90deg, #fff7d7 0 9px, transparent 9px 23px); }
+    .route-map .game-card { min-height: 254px; }
+    .route-map .game-card:nth-of-type(even) { transform: translateY(28px); }
+    .route-step { width: 28px; height: 28px; display: grid; place-items: center; position: absolute; right: 12px; top: 12px; border-radius: 10px; color: #fff; background: var(--green-dark); font-size: 11px; font-weight: 950; }
+
+    /* C: feature */
+    .feature-map { padding: 40px 9%; display: grid; grid-template-columns: 1.15fr .85fr; gap: 22px; }
+    .feature-main { min-height: 418px; padding: 25px; display: flex; flex-direction: column; justify-content: flex-end; background: linear-gradient(180deg, rgba(255,253,244,.72), rgba(255,253,244,.98)); }
+    .feature-main .art { height: 112px; transform: scale(1.6); transform-origin: left bottom; }
+    .feature-main h4 { font-size: 28px; }
+    .feature-main p { max-width: 380px; font-size: 12px; }
+    .quick-list { display: grid; gap: 13px; position: relative; z-index: 2; }
+    .quick-list .game-card { min-height: 130px; padding: 13px 15px; display: grid; grid-template-columns: 84px 1fr; gap: 0 12px; align-items: center; }
+    .quick-list .art { grid-row: 1 / 5; }
+    .quick-list .tag { margin-top: 0; justify-self: start; }
+    .quick-list h4 { margin-top: 4px; font-size: 16px; }
+    .quick-list p { min-height: auto; margin-bottom: 5px; }
+
+    .prototype-note { margin: -7px 6px 2px; color: #60756d; font-size: 11px; font-weight: 700; }
+    @media (max-width: 780px) {
+      body { padding: 12px; }
+      .option-header, .hero { display: block; }
+      .option-header p { margin-top: 8px; text-align: left; }
+      .nav { display: none; }
+      .goal { width: 100%; margin-top: 12px; }
+      .map { margin-inline: 10px; padding: 22px; }
+      .grid-map, .route-map, .feature-map { display: grid; grid-template-columns: 1fr; }
+      .grid-map .game-card:nth-child(n), .route-map .game-card:nth-of-type(n) { transform: none; }
+      .route-map .route-line { display: none; }
+      .feature-main { min-height: 280px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="page-heading">
+    <small>QWERTLEARN · 首页排版优化</small>
+    <h1>隐藏键盘训练营后的四入口方案</h1>
+    <p>三案均移除首页卡片、顶部“键位训练”和“先热身一分钟”文案；训练页代码与 <code>#/training</code> 路由继续保留。</p>
+  </header>
+
+  <section class="option">
+    <header class="option-header">
+      <div class="option-title"><b>A</b><h2>四岛均衡网格</h2><span>推荐</span></div>
+      <p>四个游戏等权呈现，2×2 卡片形成稳定视觉中心；信息密度与留白最平衡。</p>
+    </header>
+    <div class="screen">
+      <div class="topbar"><div class="brand"><i>⌨</i>QwertLearn</div><div class="nav"><span>冒险地图</span><span>我的单词本</span><span>成长奖励</span><span>学习记录</span></div><div class="profile">小Q　小探险家</div></div>
+      <div class="hero"><div><small>今日冒险 · 第 1 天</small><h3>今天想去哪座岛？</h3><p>从喜欢的游戏开始，准确输入，慢慢积累冒险积分。</p></div><div class="goal"><div><b>今日目标</b><span>0 / 8 分钟</span></div><i></i></div></div>
+      <div class="map grid-map">
+        <article class="game-card"><div class="art frog-art"><i></i><i>cat</i></div><span class="tag">池塘任务 · 初级速度</span><h4>青蛙跳荷叶</h4><p>打对单词，帮助青蛙稳稳跳到下一片荷叶。</p><div class="cta">开始池塘冒险 <b>→</b></div></article>
+        <article class="game-card"><div class="art city-art"><i></i><i></i><i></i></div><span class="tag">新任务</span><h4>城市追踪战</h4><p>准确输入每个单词，一点一点追回城市徽章。</p><div class="cta">开始城市任务 <b style="background:#ff8f6c">→</b></div></article>
+        <article class="game-card"><div class="art garden-art"><i>teacher</i><i>老师</i></div><span class="tag" style="color:#75520c;background:#fff0b8">新游戏 · 可选等级</span><h4>词语花园连连看</h4><p>找出英文与中文伙伴，让花园逐关盛开。</p><div class="cta">开始词义配对 <b style="background:#8b65b6">→</b></div></article>
+        <article class="game-card"><div class="art train-art"><i>拼</i><i>c</i><i>a</i><i>t</i></div><span class="tag" style="color:#275f7b;background:#dff1f7">新游戏 · 四档词库</span><h4>字母小火车</h4><p>看中文和乱序字母，把正确拼写装进车厢。</p><div class="cta">开始拼写旅程 <b style="background:#4386a8">→</b></div></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="option">
+    <header class="option-header">
+      <div class="option-title"><b>B</b><h2>横向成长路线</h2></div>
+      <p>四张卡沿虚线路径展开，故事感更强；适合强调“选择一站出发”的冒险地图概念。</p>
+    </header>
+    <div class="screen">
+      <div class="topbar"><div class="brand"><i>⌨</i>QwertLearn</div><div class="nav"><span>冒险地图</span><span>我的单词本</span><span>成长奖励</span><span>学习记录</span></div><div class="profile">小Q　小探险家</div></div>
+      <div class="hero"><div><small>今日冒险 · 第 1 天</small><h3>沿着单词路线出发吧</h3><p>四座小岛都已开放，选择今天最想挑战的一站。</p></div><div class="goal"><div><b>今日目标</b><span>0 / 8 分钟</span></div><i></i></div></div>
+      <div class="map route-map"><span class="route-line"></span>
+        <article class="game-card"><b class="route-step">1</b><div class="art frog-art"><i></i><i>cat</i></div><span class="tag">池塘岛</span><h4>青蛙跳荷叶</h4><p>输入单词，逐层跳过移动荷叶。</p><div class="cta">开始冒险 <b>→</b></div></article>
+        <article class="game-card"><b class="route-step">2</b><div class="art garden-art"><i>teacher</i><i>老师</i></div><span class="tag" style="color:#75520c;background:#fff0b8">花园岛</span><h4>词语花园</h4><p>配对英文与中文，让花朵盛开。</p><div class="cta">开始配对 <b style="background:#8b65b6">→</b></div></article>
+        <article class="game-card"><b class="route-step">3</b><div class="art train-art"><i>拼</i><i>c</i><i>a</i><i>t</i></div><span class="tag" style="color:#275f7b;background:#dff1f7">列车岛</span><h4>字母小火车</h4><p>根据中文提示，独立拼出英文。</p><div class="cta">开始拼写 <b style="background:#4386a8">→</b></div></article>
+        <article class="game-card"><b class="route-step">4</b><div class="art city-art"><i></i><i></i><i></i></div><span class="tag" style="color:#a84b31;background:#ffeadf">城市岛</span><h4>城市追踪战</h4><p>连续输入单词，追回城市徽章。</p><div class="cta">开始追踪 <b style="background:#ff8f6c">→</b></div></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="option">
+    <header class="option-header">
+      <div class="option-title"><b>C</b><h2>主推荐 + 快捷入口</h2></div>
+      <p>把青蛙游戏作为今日主任务，其余三个压缩为快捷卡；引导最强，但四个游戏权重不再相同。</p>
+    </header>
+    <div class="screen">
+      <div class="topbar"><div class="brand"><i>⌨</i>QwertLearn</div><div class="nav"><span>冒险地图</span><span>我的单词本</span><span>成长奖励</span><span>学习记录</span></div><div class="profile">小Q　小探险家</div></div>
+      <div class="hero"><div><small>今日冒险 · 第 1 天</small><h3>先完成今日推荐，再自由探索</h3><p>系统给出一个轻松起点，也可以直接选择其他游戏。</p></div><div class="goal"><div><b>今日目标</b><span>0 / 8 分钟</span></div><i></i></div></div>
+      <div class="map feature-map">
+        <article class="game-card feature-main"><div class="art frog-art"><i></i><i>cat</i></div><span class="tag">今日推荐 · 初级速度</span><h4>青蛙跳荷叶</h4><p>打对单词，帮助青蛙稳稳跳到下一片荷叶。今天先完成 8 个单词吧。</p><div class="cta">开始今日冒险 <b>→</b></div></article>
+        <div class="quick-list">
+          <article class="game-card"><div class="art garden-art"><i>teacher</i></div><span class="tag" style="color:#75520c;background:#fff0b8">词义配对</span><h4>词语花园</h4><p>找出英文与中文伙伴。</p><div class="cta">进入 <b style="background:#8b65b6">→</b></div></article>
+          <article class="game-card"><div class="art train-art"><i>拼</i><i>a</i></div><span class="tag" style="color:#275f7b;background:#dff1f7">拼写回忆</span><h4>字母小火车</h4><p>看中文，拼出完整英文。</p><div class="cta">进入 <b style="background:#4386a8">→</b></div></article>
+          <article class="game-card"><div class="art city-art"><i></i><i></i><i></i></div><span class="tag" style="color:#a84b31;background:#ffeadf">连续挑战</span><h4>城市追踪战</h4><p>追踪目标，追回徽章。</p><div class="cta">进入 <b style="background:#ff8f6c">→</b></div></article>
+        </div>
+      </div>
+    </div>
+  </section>
+  <p class="prototype-note">说明：这是布局确认稿，不写入学习数据；确认后再修改正式首页并完成桌面、390px、类型检查与测试验证。</p>
+</body>
+</html>

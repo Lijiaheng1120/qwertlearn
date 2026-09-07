@@ -4,7 +4,7 @@ import { EMPTY_DASHBOARD, type RunResult } from '../core/models'
 import { HomePage } from '../pages/HomePage'
 
 describe('HomePage', () => {
-  it('makes every learning and growth entrance discoverable', () => {
+  it('shows an ordered, extensible game route while keeping training off the homepage', () => {
     const navigate = vi.fn()
     const { container } = render(
       <HomePage
@@ -17,8 +17,17 @@ describe('HomePage', () => {
 
     expect(container.querySelector('.progress-track i')).toHaveStyle({ width: '0%' })
     expect(screen.getByText('提示音与单词朗读')).toBeInTheDocument()
+    expect(screen.getByText('沿着单词路线出发吧')).toBeInTheDocument()
     expect(screen.getByText('—')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /键盘训练营/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /键盘训练营/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '键位训练' })).not.toBeInTheDocument()
+    expect(screen.getByRole('region', { name: /横向成长路线/ })).toHaveAttribute('tabindex', '0')
+
+    const routeTitles = Array.from(container.querySelectorAll('.adventure-route-list .route-location h2'))
+      .map((heading) => heading.textContent)
+    expect(routeTitles).toEqual(['青蛙跳荷叶', '词语花园连连看', '字母小火车', '城市追踪战'])
+    expect(Array.from(container.querySelectorAll('.route-step')).map((step) => step.textContent)).toEqual(['1', '2', '3', '4'])
+
     expect(screen.getByRole('button', { name: /青蛙跳荷叶/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /城市追踪战/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /词语花园连连看/ })).toBeInTheDocument()
@@ -27,16 +36,17 @@ describe('HomePage', () => {
     expect(screen.getByRole('button', { name: '成长奖励' })).toBeInTheDocument()
     expect(screen.getByText('你有 0 冒险积分')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /青蛙跳荷叶/ }))
-    expect(navigate).toHaveBeenCalledWith('frog')
-    fireEvent.click(screen.getByRole('button', { name: /词语花园连连看/ }))
-    expect(navigate).toHaveBeenCalledWith('match')
-    fireEvent.click(screen.getByRole('button', { name: /字母小火车/ }))
-    expect(navigate).toHaveBeenCalledWith('spell')
+    for (const [name, route] of [
+      [/青蛙跳荷叶/, 'frog'],
+      [/词语花园连连看/, 'match'],
+      [/字母小火车/, 'spell'],
+      [/城市追踪战/, 'chase'],
+    ] as const) {
+      fireEvent.click(screen.getByRole('button', { name }))
+      expect(navigate).toHaveBeenCalledWith(route)
+    }
     fireEvent.click(screen.getByRole('button', { name: '返回冒险地图' }))
     expect(navigate).toHaveBeenCalledWith('home')
-    fireEvent.click(screen.getByRole('button', { name: '键位训练' }))
-    expect(navigate).toHaveBeenCalledWith('training')
     fireEvent.click(screen.getByRole('button', { name: '我的单词本' }))
     expect(navigate).toHaveBeenCalledWith('wordbook')
     fireEvent.click(screen.getByRole('button', { name: '成长奖励' }))
@@ -45,8 +55,6 @@ describe('HomePage', () => {
     expect(navigate).toHaveBeenCalledWith('rewards')
     fireEvent.click(screen.getByRole('button', { name: '学习记录' }))
     expect(navigate).toHaveBeenCalledWith('parent')
-    fireEvent.click(screen.getByRole('button', { name: /键盘训练营/ }))
-    expect(navigate).toHaveBeenCalledWith('training')
     fireEvent.click(screen.getByRole('button', { name: /我的单词本.*看看今天/ }))
     expect(navigate).toHaveBeenCalledWith('wordbook')
     for (const name of [/连续练习/, /我的进步/]) {
@@ -84,8 +92,8 @@ describe('HomePage', () => {
 
     expect(container.querySelector('.progress-track i')).toHaveStyle({ width: '50%' })
     expect(screen.getByText('90%')).toBeInTheDocument()
-    expect(screen.getByText('最佳 32 秒')).toBeInTheDocument()
-    expect(screen.getByText('最高第 3 站')).toBeInTheDocument()
+    expect(screen.getByText(/最佳 32 秒/)).toBeInTheDocument()
+    expect(screen.getByText('列车岛 · 最高第 3 站')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '关闭声音' }))
     expect(toggleAudio).toHaveBeenCalledOnce()

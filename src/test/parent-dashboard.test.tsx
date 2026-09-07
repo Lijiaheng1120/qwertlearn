@@ -79,6 +79,40 @@ describe('ParentDashboard', () => {
     setChannel.mockRestore()
   })
 
+  it('approves a cash wish as an offline parent fulfillment', async () => {
+    const pendingState = {
+      ...EMPTY_DASHBOARD.rewardState,
+      balance: 2_100,
+      lifetimeEarned: 2_100,
+      redemptions: [{
+        id: 'cash-1', rewardId: 'family-cash', rewardName: '现金奖励 ¥2', kind: 'family' as const,
+        cost: 2_000, status: 'pending' as const, requestedAt: 1, resolvedAt: null,
+        cashAmountYuan: 2, cashRatePointsPerYuan: 1_000,
+      }],
+    }
+    const approvedState = {
+      ...pendingState,
+      balance: 100,
+      redemptions: pendingState.redemptions.map((item) => ({ ...item, status: 'fulfilled' as const, resolvedAt: 2 })),
+    }
+    const resolve = vi.spyOn(progressStore, 'resolveFamilyReward').mockResolvedValue(approvedState)
+    render(
+      <ParentDashboard
+        summary={{ ...EMPTY_DASHBOARD, rewardState: pendingState }}
+        audioSettings={{ muted: false, music: 0.35, sfx: 0.7, voice: 1, ui: 0.5 }}
+        navigate={vi.fn()}
+        toggleAudio={vi.fn()}
+        onRewardChanged={vi.fn().mockResolvedValue(undefined)}
+      />,
+    )
+
+    expect(screen.getByText(/现金 ¥2 · 1000 积分\/元 · 共需 2000 积分/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '批准并线下兑现 现金奖励 ¥2' }))
+    await waitFor(() => expect(resolve).toHaveBeenCalledWith('cash-1', true))
+    expect(screen.getByRole('status')).toHaveTextContent('请家长线下兑现 ¥2')
+    expect(screen.getByText('余额 100 分')).toBeInTheDocument()
+  })
+
   it('approves a pending family reward through ProgressStore before deducting points', async () => {
     const pendingState = {
       ...EMPTY_DASHBOARD.rewardState,

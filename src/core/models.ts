@@ -46,6 +46,8 @@ export interface RewardRedemption {
   status: RewardRedemptionStatus
   requestedAt: number
   resolvedAt: number | null
+  cashAmountYuan?: number
+  cashRatePointsPerYuan?: number
 }
 
 export interface RewardState {
@@ -56,6 +58,14 @@ export interface RewardState {
   ownedRewardIds: string[]
   equippedRewards: Partial<Record<RewardSlot, string>>
   redemptions: RewardRedemption[]
+}
+
+export interface CashRewardPolicy {
+  pointsPerYuan: number
+  weeklyBudgetYuan: number
+  fulfilledThisWeekYuan: number
+  remainingBudgetYuan: number
+  maxRequestYuan: number
 }
 
 export interface RunRewardBreakdown {

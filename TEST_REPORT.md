@@ -11,12 +11,12 @@ QwertLearn 当前自动化质量门槛全部通过：
 | 检查 | 结果 |
 |---|---|
 | TypeScript 严格类型检查 | 通过 |
-| Vitest 全量测试 | 26 个文件，148 项通过，0 项失败 |
+| Vitest 全量测试 | 26 个文件，152 项通过，0 项失败 |
 | V8 覆盖率门槛 | 通过 |
 | Vite 生产构建 | 通过 |
-| PWA Service Worker | 生成成功，预缓存 18 项（1653.89 KiB） |
+| PWA Service Worker | 生成成功，预缓存 18 项（1663.48 KiB） |
 | npm 高危依赖审计 | 0 个漏洞 |
-| 本地真实 Chrome 验证 | 首页字母小火车入口、字母小火车桌面与真实 390px 全页、词语花园和青蛙既有页面均通过视觉审阅；390px 无横向溢出 |
+| 本地真实 Chrome 验证 | 字母小火车朝右与现金愿望面板通过 1440px、390px 响应式审阅，无页面级横向溢出且运行时错误为空；首页横向成长路线既有验证保持通过 |
 
 测试代码长期保存在 `src/test/`，可用于后续功能回归。
 
@@ -24,9 +24,9 @@ QwertLearn 当前自动化质量门槛全部通过：
 
 | 范围 | 语句 | 分支 | 函数 | 行 |
 |---|---:|---:|---:|---:|
-| 全部生产代码 | 87.96% | 82.88% | 86.97% | 90.78% |
-| `src/core` | 89.56% | 79.91% | 92.67% | 92.45% |
-| `src/pages` | 86.60% | 83.92% | 82.02% | 89.53% |
+| 全部生产代码 | 88.19% | 83.14% | 87.34% | 90.97% |
+| `src/core` | 89.93% | 80.24% | 93.03% | 92.82% |
+| `src/pages` | 86.76% | 84.18% | 82.28% | 89.62% |
 | `src/ui` | 100% | 100% | 100% | 100% |
 
 项目在 `vite.config.ts` 中设置了保守的全局回归门槛：
@@ -43,7 +43,7 @@ QwertLearn 当前自动化质量门槛全部通过：
 | 测试文件 | 数量 | 主要范围 |
 |---|---:|---|
 | `src/test/app-routing.test.tsx` | 2 | Hash 路由、页面切换、共享音频和摘要刷新 |
-| `src/test/architecture-contract.test.ts` | 19 | Typing/Match 输入边界、青蛙移动助手接入、随机选词、存储、音频和规则版本 |
+| `src/test/architecture-contract.test.ts` | 19 | Typing/Match 输入边界、青蛙移动助手接入、现金规则经 ProgressStore、列车 DOM/发车方向、随机选词、存储、音频和规则版本 |
 | `src/test/audio-service.test.ts` | 6 | 设置持久化、静音同步、输出注销、页面隐藏和语音 ducking |
 | `src/test/challenge-progression.test.ts` | 9 | 青蛙失败/阶段规则及连连看 900ms 自动进关、版本与计时 |
 | `src/test/game-pages-routing.test.tsx` | 1 | training、frog、chase、match、spell 页面分派 |
@@ -51,16 +51,16 @@ QwertLearn 当前自动化质量门槛全部通过：
 | `src/test/frog-pad-motion.test.ts` | 4 | 荷叶跟随、实时跳跃、回岸插值及单向向上路线循环 |
 | `src/test/game-shell.test.tsx` | 5 | 输入提示、难度提示、共享外壳、结果弹窗和 Escape |
 | `src/test/grade-4-word-bank.test.ts` | 4 | 400 词四档规模、全局唯一性、旧 ID/顺序兼容及难度覆盖 |
-| `src/test/home-page.test.tsx` | 2 | 空/有数据首页、目标进度、最佳成绩和全部已实现入口 |
+| `src/test/home-page.test.tsx` | 2 | 训练入口隐藏、四站顺序与编号、横向路线可访问性、目标进度、最佳成绩和全部保留入口 |
 | `src/test/icon.test.tsx` | 1 | 全部项目自有 SVG 图标 |
 | `src/test/match-engine.test.ts` | 5 | 选择、取消、正确配对、错配、忽略和单调事件序号 |
 | `src/test/match-game-page.test.tsx` | 9 | 错配不回退、三关自动推进、分级词包、计时耗尽、暂停、重开和退出保存 |
 | `src/test/models.test.ts` | 6 | 自适应难度中间区间及上下界 |
-| `src/test/parent-dashboard.test.tsx` | 3 | 聚合数据、声音面板、入口与家庭奖励审批 |
-| `src/test/progress-store.test.ts` | 12 | IndexedDB v2、迁移、防重复积分、奖励、降级、排行榜、400 词记忆和摘要 |
+| `src/test/parent-dashboard.test.tsx` | 4 | 聚合数据、声音面板、入口、普通家庭奖励与现金愿望线下兑现审批 |
+| `src/test/progress-store.test.ts` | 13 | IndexedDB v2、迁移、防重复积分、现金愿望持久化与批准扣分、奖励、降级、排行榜、400 词记忆和摘要 |
 | `src/test/pwa-assets.test.ts` | 6 | PNG 尺寸、manifest、maskable、Apple Touch、预缓存和授权登记 |
-| `src/test/reward-cabinet-page.test.tsx` | 2 | 虚拟外观兑换装备、积分状态与家庭愿望确认流程 |
-| `src/test/reward-system.test.ts` | 6 | 积分拆分、阶段倍率、封顶、唯一结算、兑换与确认 |
+| `src/test/reward-cabinet-page.test.tsx` | 3 | 虚拟外观兑换装备、现金金额加减/提交/预留/禁用，以及普通家庭愿望确认流程 |
+| `src/test/reward-system.test.ts` | 7 | 积分拆分、阶段倍率、封顶、唯一结算、1000:1 现金规则、单笔待确认、每周预算、拒绝释放与批准扣分 |
 | `src/test/spell-engine.test.ts` | 6 | 稳定乱序、重复字母、渐隐提示、两错救援与 Typing Engine 组合 |
 | `src/test/spell-game-page.test.tsx` | 4 | 四站自动进阶、正确前缀、救援、暂停、长词、结算与词包隔离 |
 | `src/test/run-clock.test.ts` | 4 | 首次输入开始、暂停时间、幂等与冻结结果 |
@@ -68,7 +68,7 @@ QwertLearn 当前自动化质量门槛全部通过：
 | `src/test/use-typing-session.test.tsx` | 5 | 唯一全局监听、表单排除、修饰键、目标变化和重新启用 |
 | `src/test/word-book-page.test.tsx` | 3 | 儿童三词路线、家长明细、空状态、复习启动与导航 |
 | `src/test/word-session.test.ts` | 4 | 单局去重、最近词避让、错词优先和两次无错退出复习 |
-| **合计** | **148** | **26 个测试文件** |
+| **合计** | **152** | **26 个测试文件** |
 
 ## 4. 产品规范映射
 
@@ -89,6 +89,13 @@ QwertLearn 当前自动化质量门槛全部通过：
 - Frog、Chase、Match 和 Spell 都通过共享 `createWordSession` 选词，保留单局去重、错词优先和熟练词降权；
 - `ProgressStore` 从全部 400 词构建共享词级记忆，错词连续两次无错后退出待复习。
 
+### 首页横向成长路线
+
+- 正式首页采用已确认的原型 B，当前站点稳定排序为青蛙、花园、小火车、城市；新游戏只需追加到路线数组末尾；
+- 键盘训练营卡片和顶部导航入口已隐藏，但 `#/training` 页面与哈希路由继续由自动化测试保护；
+- 桌面四站同屏，空间不足或未来增加站点时使用内部横向滚动与吸附，不扩宽整个页面；
+- 路线滚动区可获得键盘焦点，移动端通过下一卡露头和“向右探索”文案说明操作。
+
 ### 词语花园连连看
 
 - 正式 `#/match` 页面采用已确认的原型 A 清晰双列布局，并加入首页冒险地图入口；
@@ -102,6 +109,7 @@ QwertLearn 当前自动化质量门槛全部通过：
 ### 字母小火车
 
 - 正式 `#/spell` 页面采用已确认的原型 B：中文目的地在上，乱序字母货物和逐字车厢在下；
+- 列车视觉固定为车厢在左、车头在右；桌面、移动端与紧凑版发车关键帧都只使用正向 `translateX(...)`，长词总宽度计算保持不变；
 - 标准局共 16 词，每 4 词自动从 100% 提示切换到 70%、35% 和 0%，整词完成后等待 700 毫秒自动发车；
 - 页面只消费共享 `useTypingSession` 事件；错误键不进入答案、不清空正确前缀，连续两错仅为当前词增加 1 个稳定字母；
 - 开局可选四年级、五年级、六年级或小升初，首次有效输入后锁定词包；四档共享错词记忆并通过 `wordPackId` 隔离排行榜；
@@ -115,7 +123,8 @@ QwertLearn 当前自动化质量门槛全部通过：
 - Frog 每 8 词进入下一阶段但不自动结算；落地后跟随移动荷叶，只按底部到顶部顺序跳，到最高层后自动回到底部重新向上；普通与无尽模式均在第 3 次失败时结束；
 - Chase 目标按真实经过时间持续移动，追回徽章后切换街区继续整局；
 - `score` 与可消费 `adventurePoints` 分离，同一 run ID 不会重复发放积分；
-- 虚拟外观即时兑换装备，家庭愿望先保留可用积分，家长批准后才扣除。
+- 虚拟外观即时兑换装备，普通家庭愿望先保留可用积分，家长批准后才扣除；
+- 现金愿望固定 1000 积分/元，只接受正整数金额，每周默认最多 10 元且同时最多一笔待确认；申请时预留可用积分，批准后扣分并由家长线下兑现，拒绝则释放积分。
 
 ### 数据、排行榜、音频与 PWA
 
@@ -141,26 +150,36 @@ QwertLearn 当前自动化质量门槛全部通过：
 10. 连连看过关曾要求额外点击，青蛙又可能循环为顶部到下层；现分别改为固定延迟自动进关，以及“逐层向上、到顶回岸”的单向循环。
 11. 字母小火车窄屏棋盘最初受桌面 intrinsic minimum 影响，页面本身无滚动但内部站牌被裁切；现将响应式轨道改为 `minmax(0, 1fr)`，真实 390px 下站牌和按钮均完整可见。
 12. 7～13 字母长词在窄屏可能超出列车场景；现通过移动端紧凑机车和按词长计算的车厢宽度展示全部拼写位置。
+13. 独立新用户评审发现儿童端“不是马上付款”和“每周最多 10 元”的信息层级偏弱；现改为主文案直接说明每周上限、不会马上拿到钱，并增强安全说明对比度，积分不足时提示先练习赚分。
 
 ## 6. 构建与运行验证
 
 生产构建结果：
 
 - Vite 8.2.2 构建成功，46 个模块完成转换；
-- PWA `generateSW` 成功，预缓存 18 项（1653.89 KiB）；
+- PWA `generateSW` 成功，预缓存 18 项（1663.48 KiB）；
 - 最大分块为独立 Phaser chunk：1196.90 kB（gzip 318.74 kB）；
 - `npm audit --audit-level=high` 返回 0 个漏洞；
-- 正式首页与字母小火车在真实 macOS Chrome 中完成桌面渲染检查；字母小火车额外通过 DevTools 设备指标完成真实 390×844 首屏和 390×1346 全页检查；
-- 人工视觉审阅确认首页字母小火车入口可发现、桌面车站/列车结构清晰；移动端 `innerWidth` 与 `scrollWidth` 均为 390，站牌、发音按钮、车厢和提示区无横向截断；
+- 正式首页横向成长路线已有真实 macOS Chrome 验证；本轮通过 `agent-browser` 驱动系统 Chrome，对字母小火车和现金愿望面板完成 1440px 与 390px 静态渲染检查；
+- 首页桌面四站完整同屏，移动端首卡完整并露出下一站；桌面页面宽度 1440/1440、移动端 390/390，均无页面级横向溢出。临时追加第 5 站后仅路线内部由 1238px 扩至 1388px，页面仍为 1440px，末站可滚动完整显示；
+- 字母小火车实时 DOM 顺序为 `.spell-carriages` 后接 `.spell-engine`，车头 emoji 计算样式为 `matrix(-1, 0, 0, 1, 0, 0)`；390px 下列车约 283px、场景 338px，车头完整在右且页面宽度为 390/390；
+- 现金面板桌面宽度 1210px，390px 下左右边界为 27px/363px、步进器宽 302px；1000:1、周预算、预留积分和家长线下兑现文案均完整可见；
 - 青蛙页通过真实 macOS Chrome 桌面截图审阅，确认“失败 0/3”与“三次失败后结束”提示清晰、无截断；移动跟随由 100% 覆盖的纯运动测试与场景接入契约固定；
+- 独立的新用户视角评审结论为无阻断项；提出的两项重要反馈（非即时付款、每周上限表达）均已修复并重新完成桌面/390px 截图审阅；
 - 浏览器错误为空；正式截图保存于：
   - `/tmp/qwertlearn-fltrp-home.png`；
   - `/tmp/qwertlearn-match-final.png`；
   - `/tmp/qwertlearn-match-final-mobile.png`；
   - `/tmp/qwertlearn-frog-follow-final.png`；
+  - `/tmp/qwertlearn-home-route-desktop.png`；
+  - `/tmp/qwertlearn-home-route-mobile.png`；
   - `/tmp/qwertlearn-home-with-spell.png`；
   - `/tmp/qwertlearn-spell-final-desktop.png`；
-  - `/tmp/qwertlearn-spell-final-mobile-full.png`。
+  - `/tmp/qwertlearn-spell-final-mobile-full.png`；
+  - `/tmp/qwertlearn-spell-right-desktop.png`；
+  - `/tmp/qwertlearn-spell-right-mobile-train.png`；
+  - `/tmp/qwertlearn-cash-wish-desktop.png`；
+  - `/tmp/qwertlearn-cash-wish-mobile.png`。
 
 非阻断警告：Phaser 分块超过 Vite 默认 500 kB 提示线。Phaser 已独立分块，不影响当前构建和功能；后续可评估游戏页面动态导入。
 

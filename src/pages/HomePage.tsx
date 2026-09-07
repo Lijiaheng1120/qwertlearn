@@ -15,6 +15,50 @@ export function HomePage({ summary, audioSettings, navigate, toggleAudio }: Home
   const practicedMinutes = Math.min(8, summary.todayMinutes)
   const goalProgress = `${practicedMinutes === 0 ? 0 : practicedMinutes * 12.5}%`
 
+  // 新游戏只需追加到数组末尾，现有站点顺序和编号保持稳定。
+  const adventureStops = [
+    {
+      route: 'frog',
+      cardClassName: 'pond-location',
+      tagClassName: 'recommended',
+      tag: '池塘岛 · 初级速度',
+      title: '青蛙跳荷叶',
+      description: '打对单词，帮助青蛙稳稳跳到下一片荷叶。',
+      action: '开始冒险',
+      artwork: <span className="pond-art" aria-hidden="true"><i className="frog-face" /><i className="lily-word">cat</i></span>,
+    },
+    {
+      route: 'match',
+      cardClassName: 'garden-location',
+      tagClassName: 'garden',
+      tag: summary.highestMatchStage > 0 ? `花园岛 · 最高第 ${summary.highestMatchStage} 关` : '花园岛 · 可选等级',
+      title: '词语花园连连看',
+      description: '找出英文与中文伙伴，让花园逐关盛开。',
+      action: '开始配对',
+      artwork: <span className="match-garden-art" aria-hidden="true"><i>teacher</i><i>老师</i><b>🌼</b></span>,
+    },
+    {
+      route: 'spell',
+      cardClassName: 'spell-location',
+      tagClassName: 'spell',
+      tag: summary.highestSpellStage > 0 ? `列车岛 · 最高第 ${summary.highestSpellStage} 站` : '列车岛 · 四档词库',
+      title: '字母小火车',
+      description: '根据中文和乱序字母，独立拼出完整英文。',
+      action: '开始拼写',
+      artwork: <span className="spell-map-art" aria-hidden="true"><b>c</b><b>a</b><b>t</b><i>拼</i></span>,
+    },
+    {
+      route: 'chase',
+      cardClassName: 'city-location',
+      tagClassName: 'chase',
+      tag: summary.bestChaseMs ? `城市岛 · 最佳 ${Math.round(summary.bestChaseMs / 1000)} 秒` : '城市岛 · 新任务',
+      title: '城市追踪战',
+      description: '连续输入单词，一点一点追回城市徽章。',
+      action: '开始追踪',
+      artwork: <span className="city-art" aria-hidden="true"><i /><i /><i /><b /></span>,
+    },
+  ] as const
+
   return (
     <div className="storybook-app">
       <header className="storybook-topbar">
@@ -25,7 +69,6 @@ export function HomePage({ summary, audioSettings, navigate, toggleAudio }: Home
 
         <nav className="storybook-nav" aria-label="主要导航">
           <button className="active" onClick={() => navigate('home')}>冒险地图</button>
-          <button onClick={() => navigate('training')}>键位训练</button>
           <button onClick={() => navigate('wordbook')}>我的单词本</button>
           <button onClick={() => navigate('rewards')}>成长奖励</button>
           <button onClick={() => navigate('parent')}>学习记录</button>
@@ -46,8 +89,8 @@ export function HomePage({ summary, audioSettings, navigate, toggleAudio }: Home
         <section className="storybook-hero">
           <div>
             <p className="eyebrow">今日冒险 · 第 {Math.max(1, summary.practiceDays)} 天</p>
-            <h1>准备好用单词开启新旅程了吗？</h1>
-            <p>先热身一分钟，再选择池塘、词语花园、字母小火车或城市。准确比速度更重要，选错也可以继续修正。</p>
+            <h1>沿着单词路线出发吧</h1>
+            <p>{adventureStops.length} 座小岛都已开放，选择今天最想挑战的一站。准确比速度更重要，选错也可以继续修正。</p>
           </div>
           <div className="daily-card" aria-label={`今日目标已完成 ${practicedMinutes} 分钟，共 8 分钟`}>
             <div><strong>今日目标</strong><span>{practicedMinutes} / 8 分钟</span></div>
@@ -55,55 +98,37 @@ export function HomePage({ summary, audioSettings, navigate, toggleAudio }: Home
           </div>
         </section>
 
-        <section className="adventure-map" aria-label="游戏冒险地图">
+        <section className="adventure-map adventure-route" aria-label="游戏成长路线">
           <div className="music-mood"><Icon name="music" />提示音与单词朗读</div>
           <span className="map-sun" />
           <span className="map-mountain mountain-one" />
           <span className="map-mountain mountain-two" />
-          <span className="map-river" />
-          <span className="map-road" />
-          <svg className="map-path" viewBox="0 0 1300 500" aria-hidden="true">
-            <path d="M320 352C447 306 443 202 575 181C721 160 794 297 947 309" />
-          </svg>
 
-          <button className="map-location training-location" onClick={() => navigate('training')}>
-            <span className="location-tag warm">建议先开始 · 1 分钟</span>
-            <h2>键盘训练营</h2>
-            <p>找到 F 和 J，让双手准备出发。</p>
-            <span className="location-cta">继续热身 <b><Icon name="arrow" /></b></span>
-          </button>
-
-          <button className="map-location pond-location" onClick={() => navigate('frog')}>
-            <span className="pond-art" aria-hidden="true"><i className="frog-face" /><i className="lily-word">cat</i></span>
-            <span className="location-tag recommended">池塘任务 · 初级速度</span>
-            <h2>青蛙跳荷叶</h2>
-            <p>打对单词，帮助青蛙稳稳跳到下一片荷叶。</p>
-            <span className="location-cta">开始池塘冒险 <b><Icon name="arrow" /></b></span>
-          </button>
-
-          <button className="map-location garden-location" onClick={() => navigate('match')}>
-            <span className="match-garden-art" aria-hidden="true"><i>teacher</i><i>老师</i><b>🌼</b></span>
-            <span className="location-tag garden">{summary.highestMatchStage > 0 ? `最高第 ${summary.highestMatchStage} 关` : '新游戏 · 可选等级'}</span>
-            <h2>词语花园连连看</h2>
-            <p>用鼠标或触控找出英文与中文伙伴，让花园逐关盛开。</p>
-            <span className="location-cta">开始词义配对 <b><Icon name="arrow" /></b></span>
-          </button>
-
-          <button className="map-location spell-location" onClick={() => navigate('spell')}>
-            <span className="spell-map-art" aria-hidden="true"><i>拼</i><b>c</b><b>a</b><b>t</b></span>
-            <span className="location-tag spell">{summary.highestSpellStage > 0 ? `最高第 ${summary.highestSpellStage} 站` : '新游戏 · 四档词库'}</span>
-            <h2>字母小火车</h2>
-            <p>看中文和逐步减少的乱序字母，把正确拼写装进每节车厢。</p>
-            <span className="location-cta">开始拼写旅程 <b><Icon name="arrow" /></b></span>
-          </button>
-
-          <button className="map-location city-location" onClick={() => navigate('chase')}>
-            <span className="city-art" aria-hidden="true"><i /><i /><i /><b /></span>
-            <span className="location-tag chase">{summary.bestChaseMs ? `最佳 ${Math.round(summary.bestChaseMs / 1000)} 秒` : '新任务'}</span>
-            <h2>城市追踪战</h2>
-            <p>准确输入每个单词，一点一点追回城市徽章。</p>
-            <span className="location-cta">开始城市任务 <b><Icon name="arrow" /></b></span>
-          </button>
+          <div
+            className="adventure-route-scroll"
+            role="region"
+            aria-label="横向成长路线，可左右滑动查看更多游戏"
+            tabIndex={0}
+          >
+            <ol className="adventure-route-list">
+              {adventureStops.map((stop, index) => (
+                <li className="route-stop" key={stop.route}>
+                  <button
+                    className={`map-location route-location ${stop.cardClassName}`}
+                    onClick={() => navigate(stop.route)}
+                  >
+                    <span className="route-step" aria-hidden="true">{index + 1}</span>
+                    {stop.artwork}
+                    <span className={`location-tag ${stop.tagClassName}`}>{stop.tag}</span>
+                    <h2>{stop.title}</h2>
+                    <p>{stop.description}</p>
+                    <span className="location-cta">{stop.action} <b><Icon name="arrow" /></b></span>
+                  </button>
+                </li>
+              ))}
+            </ol>
+          </div>
+          <p className="route-scroll-note">沿路线向右探索，新的冒险岛会继续接在后面 <span aria-hidden="true">→</span></p>
         </section>
 
         <section className="home-reward-entry" aria-label="成长奖励概览">

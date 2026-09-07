@@ -50,6 +50,46 @@ describe('RewardCabinetPage', () => {
     expect(refresh).toHaveBeenCalledOnce()
   })
 
+  it('submits a variable cash wish at 1,000 points per yuan without immediate deduction', async () => {
+    const initial = rewardState(3_000)
+    const pending: RewardState = {
+      ...initial,
+      redemptions: [{
+        id: 'cash-1', rewardId: 'family-cash', rewardName: '现金奖励 ¥2', kind: 'family',
+        cost: 2_000, status: 'pending', requestedAt: 2, resolvedAt: null,
+        cashAmountYuan: 2, cashRatePointsPerYuan: 1_000,
+      }],
+    }
+    const request = vi.spyOn(progressStore, 'requestCashReward').mockResolvedValue(pending)
+    render(
+      <RewardCabinetPage
+        summary={{ ...EMPTY_DASHBOARD, rewardState: initial }}
+        audioSettings={audioSettings}
+        navigate={vi.fn()}
+        toggleAudio={vi.fn()}
+        onRewardChanged={vi.fn().mockResolvedValue(undefined)}
+      />,
+    )
+
+    const cashSection = screen.getByRole('heading', { name: '积分兑换现金愿望' }).closest('section')!
+    expect(within(cashSection).getByText('1000 积分 = ¥1')).toBeInTheDocument()
+    expect(within(cashSection).getByText(/每周最多 ¥10，本周还剩 ¥10/)).toBeInTheDocument()
+    expect(within(cashSection).getByText(/不会马上拿到钱/)).toBeInTheDocument()
+    const increase = within(cashSection).getByRole('button', { name: '增加一元' })
+    const decrease = within(cashSection).getByRole('button', { name: '减少一元' })
+    fireEvent.click(increase)
+    fireEvent.click(increase)
+    expect(within(cashSection).getByText('¥3')).toBeInTheDocument()
+    fireEvent.click(decrease)
+    expect(within(cashSection).getByText('¥2')).toBeInTheDocument()
+    fireEvent.click(within(cashSection).getByRole('button', { name: '请家长确认' }))
+
+    await waitFor(() => expect(request).toHaveBeenCalledWith(2))
+    expect(await screen.findByRole('status')).toHaveTextContent('已保留 2000 积分，确认前不会扣除')
+    expect(screen.getByLabelText('积分余额 3000，可用 1000')).toBeInTheDocument()
+    expect(within(cashSection).getByRole('button', { name: '等待家长确认' })).toBeDisabled()
+  })
+
   it('submits a family wish without deducting points before parent approval', async () => {
     const initial = rewardState(1_600)
     const pending: RewardState = {

@@ -1,4 +1,5 @@
 import type {
+  CashRewardPolicy,
   RewardDefinition,
   RewardRedemption,
   RewardSlot,
@@ -11,6 +12,9 @@ export const REWARD_RULES_VERSION = '1.0.0'
 export const REWARD_STATE_ID = 'local'
 export const MIN_REWARD_DURATION_MS = 3_000
 export const MAX_POINTS_PER_RUN = 500
+export const CASH_REWARD_ID = 'family-cash'
+export const CASH_POINTS_PER_YUAN = 1_000
+export const CASH_WEEKLY_BUDGET_YUAN = 10
 
 export class RewardRuleError extends Error {
   constructor(message: string) {
@@ -166,6 +170,86 @@ export function pendingFamilyCost(state: RewardState): number {
 
 export function spendableAdventurePoints(state: RewardState): number {
   return Math.max(0, state.balance - pendingFamilyCost(state))
+}
+
+function startOfLocalWeek(timestamp: number): number {
+  const date = new Date(timestamp)
+  const daysSinceMonday = (date.getDay() + 6) % 7
+  date.setHours(0, 0, 0, 0)
+  date.setDate(date.getDate() - daysSinceMonday)
+  return date.getTime()
+}
+
+function cashAmountYuan(redemption: RewardRedemption): number {
+  const rate = Number.isFinite(redemption.cashRatePointsPerYuan) && redemption.cashRatePointsPerYuan! > 0
+    ? Math.round(redemption.cashRatePointsPerYuan!)
+    : CASH_POINTS_PER_YUAN
+  const amount = Number.isFinite(redemption.cashAmountYuan)
+    ? Math.round(redemption.cashAmountYuan!)
+    : Math.round(redemption.cost / rate)
+  return Math.max(0, amount)
+}
+
+export function getCashRewardPolicy(state: RewardState, timestamp: number): CashRewardPolicy {
+  const current = normalizeRewardState(state)
+  const weekStart = startOfLocalWeek(timestamp)
+  const weekEnd = weekStart + 7 * 24 * 60 * 60 * 1_000
+  const fulfilledThisWeekYuan = current.redemptions
+    .filter((item) => item.rewardId === CASH_REWARD_ID
+      && item.status === 'fulfilled'
+      && item.resolvedAt != null
+      && item.resolvedAt >= weekStart
+      && item.resolvedAt < weekEnd)
+    .reduce((sum, item) => sum + cashAmountYuan(item), 0)
+  const remainingBudgetYuan = Math.max(0, CASH_WEEKLY_BUDGET_YUAN - fulfilledThisWeekYuan)
+  return {
+    pointsPerYuan: CASH_POINTS_PER_YUAN,
+    weeklyBudgetYuan: CASH_WEEKLY_BUDGET_YUAN,
+    fulfilledThisWeekYuan,
+    remainingBudgetYuan,
+    maxRequestYuan: Math.max(0, Math.min(
+      remainingBudgetYuan,
+      Math.floor(spendableAdventurePoints(current) / CASH_POINTS_PER_YUAN),
+    )),
+  }
+}
+
+export function requestCashReward(
+  state: RewardState,
+  amountYuan: number,
+  redemptionId: string,
+  timestamp: number,
+): RewardState {
+  const current = normalizeRewardState(state)
+  if (!Number.isInteger(amountYuan) || amountYuan < 1) {
+    throw new RewardRuleError('现金愿望金额必须是正整数')
+  }
+  if (current.redemptions.some((item) => item.rewardId === CASH_REWARD_ID && item.status === 'pending')) {
+    throw new RewardRuleError('已有一笔现金愿望等待家长确认')
+  }
+  const cost = amountYuan * CASH_POINTS_PER_YUAN
+  if (spendableAdventurePoints(current) < cost) throw new RewardRuleError('可用积分不足')
+  const policy = getCashRewardPolicy(current, timestamp)
+  if (amountYuan > policy.remainingBudgetYuan) throw new RewardRuleError('超过本周剩余现金预算')
+
+  return {
+    ...current,
+    redemptions: [
+      ...current.redemptions,
+      {
+        id: redemptionId,
+        rewardId: CASH_REWARD_ID,
+        rewardName: `现金奖励 ¥${amountYuan}`,
+        kind: 'family',
+        cost,
+        status: 'pending',
+        requestedAt: timestamp,
+        resolvedAt: null,
+        cashAmountYuan: amountYuan,
+        cashRatePointsPerYuan: CASH_POINTS_PER_YUAN,
+      },
+    ],
+  }
 }
 
 export function redeemCosmeticReward(

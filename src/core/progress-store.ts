@@ -4,6 +4,7 @@ import {
   ALL_VOCABULARY_WORDS,
   buildLeaderboardKey,
   EMPTY_DASHBOARD,
+  type CashRewardPolicy,
   type DashboardSummary,
   type GameId,
   type RewardDefinition,
@@ -14,6 +15,7 @@ import {
 import {
   calculateRunAdventurePoints,
   calculateRunRewardBreakdown,
+  getCashRewardPolicy as getCashRewardPolicyState,
   createEmptyRewardState,
   mergeRewardStates,
   normalizeRewardState,
@@ -21,6 +23,7 @@ import {
   REWARD_RULES_VERSION,
   REWARD_STATE_ID,
   redeemCosmeticReward,
+  requestCashReward as requestCashRewardState,
   requestFamilyReward as requestFamilyRewardState,
   resolveFamilyReward as resolveFamilyRewardState,
   RewardRuleError,
@@ -122,6 +125,10 @@ export class ProgressStore {
     return spendableAdventurePoints(state)
   }
 
+  getCashRewardPolicy(state: RewardState): CashRewardPolicy {
+    return getCashRewardPolicyState(state, Date.now())
+  }
+
   private getDatabase(): Promise<IDBPDatabase<QwertLearnDatabase>> {
     this.databasePromise ??= openDB<QwertLearnDatabase>(this.databaseName, DATABASE_VERSION, {
       upgrade(database, oldVersion) {
@@ -221,6 +228,12 @@ export class ProgressStore {
     const now = Date.now()
     const redemptionId = createRedemptionId()
     return this.updateRewardState((state) => requestFamilyRewardState(state, rewardId, redemptionId, now))
+  }
+
+  async requestCashReward(amountYuan: number): Promise<RewardState> {
+    const now = Date.now()
+    const redemptionId = createRedemptionId()
+    return this.updateRewardState((state) => requestCashRewardState(state, amountYuan, redemptionId, now))
   }
 
   async resolveFamilyReward(redemptionId: string, approved: boolean): Promise<RewardState> {
