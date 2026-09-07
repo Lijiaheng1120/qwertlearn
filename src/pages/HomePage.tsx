@@ -47,7 +47,7 @@ export function HomePage({ summary, audioSettings, navigate, toggleAudio }: Home
           <div>
             <p className="eyebrow">今日冒险 · 第 {Math.max(1, summary.practiceDays)} 天</p>
             <h1>准备好用单词开启新旅程了吗？</h1>
-            <p>先热身一分钟，再选择池塘、词语花园或城市。准确比速度更重要，选错也可以继续修正。</p>
+            <p>先热身一分钟，再选择池塘、词语花园、字母小火车或城市。准确比速度更重要，选错也可以继续修正。</p>
           </div>
           <div className="daily-card" aria-label={`今日目标已完成 ${practicedMinutes} 分钟，共 8 分钟`}>
             <div><strong>今日目标</strong><span>{practicedMinutes} / 8 分钟</span></div>
@@ -89,6 +89,14 @@ export function HomePage({ summary, audioSettings, navigate, toggleAudio }: Home
             <span className="location-cta">开始词义配对 <b><Icon name="arrow" /></b></span>
           </button>
 
+          <button className="map-location spell-location" onClick={() => navigate('spell')}>
+            <span className="spell-map-art" aria-hidden="true"><i>拼</i><b>c</b><b>a</b><b>t</b></span>
+            <span className="location-tag spell">{summary.highestSpellStage > 0 ? `最高第 ${summary.highestSpellStage} 站` : '新游戏 · 四档词库'}</span>
+            <h2>字母小火车</h2>
+            <p>看中文和逐步减少的乱序字母，把正确拼写装进每节车厢。</p>
+            <span className="location-cta">开始拼写旅程 <b><Icon name="arrow" /></b></span>
+          </button>
+
           <button className="map-location city-location" onClick={() => navigate('chase')}>
             <span className="city-art" aria-hidden="true"><i /><i /><i /><b /></span>
             <span className="location-tag chase">{summary.bestChaseMs ? `最佳 ${Math.round(summary.bestChaseMs / 1000)} 秒` : '新任务'}</span>
@@ -103,7 +111,7 @@ export function HomePage({ summary, audioSettings, navigate, toggleAudio }: Home
           <div>
             <small>成长岛奖励柜</small>
             <h2>你有 {summary.rewardState.balance} 冒险积分</h2>
-            <p>青蛙最高阶段 {summary.highestFrogStage} · 城市最高街区 {summary.highestChaseStage} · 花园最高第 {summary.highestMatchStage} 关。积分可以换外观，也可以提交家庭愿望。</p>
+            <p>青蛙最高阶段 {summary.highestFrogStage} · 城市最高街区 {summary.highestChaseStage} · 花园最高第 {summary.highestMatchStage} 关 · 小火车最高第 {summary.highestSpellStage} 站。积分可以换外观，也可以提交家庭愿望。</p>
           </div>
           <button onClick={() => navigate('rewards')}>打开奖励柜 <Icon name="arrow" /></button>
         </section>

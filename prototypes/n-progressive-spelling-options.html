@@ -1,0 +1,418 @@
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>QwertLearn · 中文拼词新游戏三套原型</title>
+  <!--
+    Selected direction: B Letter Train with carriage-by-carriage completion feedback.
+    A: direct greenhouse spelling board (recommended for clarity and implementation scope).
+    B: letter train with carriage-by-carriage completion feedback.
+    C: focused decoder desk that foregrounds the final no-letter-hint stage.
+    Production must use shared Typing Session, Word Bank, Adaptive Difficulty,
+    ProgressStore, leaderboard keys, ActiveRunClock, and AudioService.
+  -->
+  <style>
+    :root {
+      --ink:#17353b; --muted:#647974; --paper:#fffdf5; --green:#268758;
+      --leaf:#dcedd0; --yellow:#ffd86a; --coral:#ef8069; --purple:#725ca1;
+      --blue:#4386a8; --line:rgba(23,53,59,.11); --shadow:0 18px 42px rgba(38,78,62,.13);
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--ink); background:#e7f5ec; font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif; }
+    button,input { color:inherit; font:inherit; }
+    button { cursor:pointer; }
+    .shell { width:min(1320px,100%); margin:auto; padding:18px 22px 40px; }
+    .topbar { min-height:68px; padding:10px 15px; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:16px; border:2px solid var(--line); border-radius:22px; background:var(--paper); box-shadow:0 10px 30px rgba(34,79,60,.08); position:sticky; top:10px; z-index:20; }
+    .brand { display:flex; align-items:center; gap:10px; font-size:18px; font-weight:950; }
+    .mark { width:43px; height:43px; display:grid; place-items:center; border-radius:13px; background:var(--yellow); font-size:22px; }
+    .tabs { padding:5px; display:flex; gap:4px; border-radius:14px; background:#eaf1e6; }
+    .tabs button { padding:9px 14px; border:0; border-radius:10px; color:#61766f; background:transparent; font-size:11px; font-weight:900; }
+    .tabs button[aria-pressed="true"] { color:#fff; background:var(--green); box-shadow:0 5px 12px rgba(38,135,88,.24); }
+    .safety { justify-self:end; padding:9px 11px; border-radius:11px; color:#775d0c; background:#fff0b5; font-size:10px; font-weight:900; }
+    .concept { display:none; }
+    .concept.active { display:block; }
+    .hero { margin:15px 0 12px; padding:22px 25px; display:grid; grid-template-columns:1fr auto; align-items:end; gap:20px; border:2px solid var(--line); border-radius:24px; background:var(--paper); box-shadow:var(--shadow); }
+    .eyebrow { margin:0 0 5px; color:var(--green); font-size:11px; font-weight:950; letter-spacing:1.2px; }
+    .hero h1 { margin:0; font-size:clamp(27px,4vw,40px); line-height:1.08; }
+    .hero p:last-child { max-width:820px; margin:7px 0 0; color:var(--muted); font-size:12px; font-weight:650; line-height:1.55; }
+    .hero-tag { padding:10px 13px; border-radius:999px; color:#fff; background:var(--green); font-size:10px; font-weight:900; white-space:nowrap; }
+    .layout { display:grid; grid-template-columns:230px minmax(0,1fr); gap:14px; }
+    .rule-rail { padding:17px; border:2px solid var(--line); border-radius:23px; background:rgba(255,253,245,.9); }
+    .rule-rail h2 { margin:0 0 4px; font-size:16px; }
+    .rule-rail > p { margin:0; color:var(--muted); font-size:10px; line-height:1.5; }
+    .stage-list { margin-top:14px; display:grid; gap:7px; }
+    .stage-button { width:100%; padding:10px; display:grid; grid-template-columns:30px 1fr; align-items:center; gap:9px; border:2px solid transparent; border-radius:13px; color:#526861; background:#edf3e8; text-align:left; }
+    .stage-button b { width:29px; height:29px; display:grid; place-items:center; border-radius:9px; color:#587067; background:#fff; font-size:12px; }
+    .stage-button strong,.stage-button small { display:block; }
+    .stage-button strong { font-size:11px; }
+    .stage-button small { margin-top:2px; color:inherit; font-size:8px; opacity:.78; }
+    .stage-button.active { color:#fff; border-color:rgba(255,255,255,.55); background:var(--green); }
+    .stage-button.active b { color:var(--green); }
+    .rail-note { margin-top:13px; padding:10px; border-left:4px solid var(--yellow); color:#6b5a24; background:#fff5ca; font-size:9px; line-height:1.5; }
+    .gameboard { min-height:620px; padding:17px 20px 20px; overflow:hidden; border:3px solid var(--line); border-radius:28px; background:var(--paper); box-shadow:var(--shadow); position:relative; }
+    .hud { display:flex; align-items:center; justify-content:space-between; gap:10px; padding-bottom:13px; border-bottom:1px solid var(--line); }
+    .hud-group { display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+    .hud span { padding:7px 9px; border-radius:10px; color:#596d67; background:#eef3e9; font-size:9px; font-weight:850; }
+    .hud span b { margin-left:3px; color:var(--green); font-size:11px; }
+    .end-button { padding:8px 11px; border:0; border-radius:10px; color:#884d3e; background:#ffe5dc; font-size:9px; font-weight:900; }
+    .word-stage { min-height:486px; padding:25px 12px 15px; display:grid; align-content:start; justify-items:center; position:relative; }
+    .mascot-line { margin-bottom:7px; color:#6e827b; font-size:10px; font-weight:800; }
+    .meaning { min-width:min(520px,92%); padding:18px 25px; border:3px solid #b9d9ad; border-radius:20px; background:#eff8df; text-align:center; box-shadow:0 8px 0 #dcebcf; }
+    .meaning small,.meaning strong { display:block; }
+    .meaning small { color:#648067; font-size:9px; font-weight:900; letter-spacing:1.2px; }
+    .meaning strong { margin-top:4px; font-size:35px; }
+    .speak { margin-top:10px; padding:7px 11px; border:0; border-radius:10px; color:#376c8a; background:#e5f1f7; font-size:9px; font-weight:900; }
+    .hint-label { margin:22px 0 8px; color:#667973; font-size:10px; font-weight:900; }
+    .hint-label b { color:var(--purple); }
+    .letter-tray { min-height:64px; display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; }
+    .letter-tile { width:47px; height:49px; display:grid; place-items:center; border:2px solid #d9d0e7; border-radius:12px; color:#5e4787; background:#f4effb; box-shadow:0 5px 0 #ded4eb; font-size:21px; font-weight:950; text-transform:lowercase; }
+    .no-hint { padding:14px 18px; border:2px dashed #c6cfca; border-radius:13px; color:#75857f; background:#f5f6f1; font-size:10px; font-weight:850; }
+    .slots { margin-top:25px; display:flex; justify-content:center; gap:7px; flex-wrap:wrap; }
+    .slot { width:42px; height:50px; display:grid; place-items:center; border-bottom:4px solid #bfd0c6; color:#1d6f4b; font-size:23px; font-weight:950; }
+    .slot.filled { border-color:var(--green); background:#edf8ec; }
+    .typing-row { width:min(550px,94%); margin-top:18px; display:grid; grid-template-columns:1fr auto; gap:8px; }
+    .typing-input { min-width:0; padding:12px 14px; border:2px solid #cddbd2; border-radius:13px; outline:none; background:#fff; font-size:15px; font-weight:850; letter-spacing:1px; }
+    .typing-input:focus { border-color:var(--green); box-shadow:0 0 0 4px rgba(38,135,88,.12); }
+    .typing-input.bad { border-color:var(--coral); background:#fff0eb; }
+    .next-demo { padding:10px 13px; border:0; border-radius:12px; color:#fff; background:var(--green); font-size:10px; font-weight:900; }
+    .message { min-height:34px; margin:10px 0 0; padding:8px 13px; border-radius:999px; color:#5d684a; background:#fff4c6; font-size:10px; font-weight:900; text-align:center; }
+    .upgrade { width:min(640px,96%); margin-top:17px; display:grid; grid-template-columns:repeat(4,1fr); gap:5px; }
+    .upgrade i { height:7px; border-radius:999px; background:#dfe7dc; }
+    .upgrade i.on { background:var(--green); }
+    .architecture { padding:11px 14px; display:flex; justify-content:space-between; gap:12px; border-radius:13px; color:#526760; background:#edf3ef; font-size:9px; line-height:1.5; }
+    .architecture b { color:#246e4b; }
+    .comparison { margin-top:12px; padding:12px 15px; display:grid; grid-template-columns:repeat(3,1fr); gap:8px; border:2px solid var(--line); border-radius:18px; background:rgba(255,253,245,.86); }
+    .comparison div { padding:8px 10px; border-left:4px solid #bdd4c4; }
+    .comparison strong,.comparison small { display:block; }
+    .comparison strong { font-size:10px; }
+    .comparison small { margin-top:3px; color:var(--muted); font-size:8px; line-height:1.45; }
+
+    /* B: letter train */
+    .concept-b { background:#eef3fb; }
+    .concept-b .hero-tag,.concept-b .stage-button.active,.concept-b .next-demo { background:var(--blue); }
+    .concept-b .eyebrow,.concept-b .hud span b { color:var(--blue); }
+    .concept-b .stage-button.active b { color:var(--blue); }
+    .concept-b .word-stage { justify-items:stretch; padding-inline:18px; }
+    .station { padding:13px 17px; display:flex; align-items:center; justify-content:space-between; gap:12px; border:3px solid #8cb9ce; background:#dff1f7; box-shadow:0 8px 0 #c8e1eb; }
+    .station strong { font-size:30px; }
+    .station small { color:#4b7181; font-size:9px; font-weight:900; }
+    .train-scene { min-height:208px; margin-top:22px; padding:24px 15px 17px; overflow:hidden; border-bottom:8px solid #4f6670; background:#e6f4dc; position:relative; }
+    .train-scene::after { content:""; height:4px; position:absolute; left:0; right:0; bottom:13px; background:#829399; }
+    .engine { width:114px; height:72px; position:absolute; left:18px; bottom:22px; border:4px solid var(--ink); border-radius:22px 13px 9px 9px; background:#f18b69; box-shadow:inset 0 -15px rgba(80,49,40,.13); }
+    .engine::before { content:"拼"; width:46px; height:45px; display:grid; place-items:center; position:absolute; left:16px; top:-31px; border:4px solid var(--ink); border-bottom:0; border-radius:10px 10px 0 0; color:#fff; background:#4386a8; font-size:18px; font-weight:950; }
+    .engine::after { content:"🚂"; position:absolute; right:8px; top:14px; font-size:32px; }
+    .carriages { margin-left:142px; display:flex; align-items:end; gap:6px; min-height:137px; overflow:auto; }
+    .carriage { min-width:52px; height:66px; display:grid; place-items:center; border:4px solid var(--ink); border-radius:10px 10px 7px 7px; color:#245e7a; background:#fff7ca; box-shadow:inset 0 -13px #eadc92; font-size:23px; font-weight:950; }
+    .carriage.filled { color:#fff; background:#4f9bbd; box-shadow:inset 0 -13px #397e9e; }
+    .cargo-hints { margin:15px auto 0; display:flex; justify-content:center; gap:7px; flex-wrap:wrap; }
+    .cargo-hints .letter-tile { color:#794e30; border-color:#e3c59e; background:#fff0d5; box-shadow:0 5px 0 #ead4b5; }
+    .concept-b .typing-input:focus { border-color:var(--blue); box-shadow:0 0 0 4px rgba(67,134,168,.13); }
+    .concept-b .upgrade i.on { background:var(--blue); }
+
+    /* C: decoder desk */
+    .concept-c { background:#eeeaf8; }
+    .concept-c .hero { color:#fff; border-color:#40365f; background:#322b4d; }
+    .concept-c .hero p:last-child { color:#d8d1e9; }
+    .concept-c .eyebrow { color:#ffe38a; }
+    .concept-c .hero-tag,.concept-c .stage-button.active,.concept-c .next-demo { background:var(--purple); }
+    .concept-c .stage-button.active b { color:var(--purple); }
+    .concept-c .gameboard { color:#f5f2ff; border-color:#41385e; background:#29243f; }
+    .concept-c .hud { border-color:#ffffff1c; }
+    .concept-c .hud span { color:#dbd5e8; background:#ffffff12; }
+    .concept-c .hud span b { color:#ffe081; }
+    .concept-c .end-button { color:#ffd8cf; background:#ffffff12; }
+    .decoder-stage { min-height:486px; padding:26px 12px 15px; display:grid; align-content:start; justify-items:center; }
+    .decoder-symbol { width:72px; height:72px; display:grid; place-items:center; border:2px solid #a894d1; border-radius:50%; color:#ffe081; background:#3b3358; font-size:30px; box-shadow:0 0 0 10px #332d4a; }
+    .decoder-meaning { margin-top:20px; text-align:center; }
+    .decoder-meaning small { display:block; color:#bdb4d1; font-size:9px; font-weight:900; letter-spacing:1.5px; }
+    .decoder-meaning strong { display:block; margin-top:4px; font-size:42px; }
+    .concept-c .hint-label { color:#c7bfd7; }
+    .concept-c .letter-tile { color:#f4eaff; border-color:#6f608f; background:#40375d; box-shadow:0 5px 0 #1d1930; }
+    .concept-c .no-hint { color:#c6bed7; border-color:#776b91; background:#332d49; }
+    .concept-c .slot { color:#ffe081; border-color:#6f6487; }
+    .concept-c .slot.filled { border-color:#ffe081; background:#3d3557; }
+    .concept-c .typing-input { color:#fff; border-color:#625778; background:#37304e; }
+    .concept-c .typing-input::placeholder { color:#a99fbb; }
+    .concept-c .typing-input:focus { border-color:#b49ddd; box-shadow:0 0 0 4px rgba(180,157,221,.15); }
+    .concept-c .message { color:#463c18; }
+    .concept-c .upgrade i { background:#4c435f; }
+    .concept-c .upgrade i.on { background:#ffe081; }
+    .concept-c .architecture { color:#d0c9dd; background:#ffffff0d; }
+    .concept-c .architecture b { color:#ffe081; }
+
+    @media (max-width:900px) {
+      .topbar { grid-template-columns:1fr auto; }
+      .tabs { grid-column:1 / 3; grid-row:2; justify-content:center; }
+      .safety { grid-column:2; grid-row:1; }
+      .layout { grid-template-columns:1fr; }
+      .rule-rail { display:grid; grid-template-columns:1fr 2fr; gap:12px; }
+      .stage-list { margin:0; grid-template-columns:1fr 1fr; }
+      .rail-note { grid-column:1 / 3; margin:0; }
+    }
+    @media (max-width:620px) {
+      .shell { padding:8px; }
+      .topbar { position:static; }
+      .brand { font-size:14px; }
+      .safety { display:none; }
+      .tabs { grid-column:1 / 3; overflow:auto; justify-content:flex-start; }
+      .tabs button { white-space:nowrap; }
+      .hero { grid-template-columns:1fr; padding:18px; }
+      .hero-tag { justify-self:start; }
+      .rule-rail { display:block; }
+      .stage-list { margin-top:12px; }
+      .rail-note { margin-top:11px; }
+      .gameboard { min-height:650px; padding:12px; }
+      .word-stage,.decoder-stage { padding-inline:2px; }
+      .meaning { min-width:100%; }
+      .meaning strong,.decoder-meaning strong { font-size:31px; }
+      .letter-tile { width:39px; height:43px; font-size:18px; }
+      .slot { width:33px; height:45px; font-size:19px; }
+      .typing-row { grid-template-columns:1fr; }
+      .upgrade { grid-template-columns:repeat(4,1fr); }
+      .architecture { display:block; }
+      .comparison { grid-template-columns:1fr; }
+      .station strong { font-size:24px; }
+      .train-scene { padding-inline:5px; }
+      .engine { transform:scale(.82); transform-origin:left bottom; }
+      .carriages { margin-left:111px; }
+      .carriage { min-width:43px; }
+    }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important; transition:none!important; animation:none!important; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="mark">⌨️</span><span>QwertLearn 拼词新游戏评审</span></div>
+      <nav class="tabs" aria-label="三套拼词游戏原型">
+        <button data-show="a" aria-pressed="false">A 拼词温室</button>
+        <button data-show="b" aria-pressed="true">B 字母小火车</button>
+        <button data-show="c" aria-pressed="false">C 星光解码台</button>
+      </nav>
+      <span class="safety">交互原型 · 不保存成绩</span>
+    </header>
+
+    <section class="concept concept-a" data-panel="a" data-stage="0" data-word="0" data-seed="mo">
+      <header class="hero">
+        <div><p class="eyebrow">方案 A · 最清晰直观</p><h1>拼词温室：看中文，把英文种出来</h1><p>中文释义始终在上方；乱序字母从完整、部分、少量到完全隐藏。孩子用真实键盘逐字输入，拼对后立即长出新花并进入下一词。</p></div>
+        <span class="hero-tag">规则最清楚 · 开发风险最低</span>
+      </header>
+      <main class="layout">
+        <aside class="rule-rail">
+          <div><h2>四级提示阶梯</h2><p>每完成 4 词升级一次；本局只升不降，升级不弹结算。</p></div>
+          <div class="stage-list">
+            <button class="stage-button active" data-stage="0"><b>1</b><span><strong>完整乱序</strong><small>显示 100% 字母</small></span></button>
+            <button class="stage-button" data-stage="1"><b>2</b><span><strong>部分乱序</strong><small>显示约 70% 字母</small></span></button>
+            <button class="stage-button" data-stage="2"><b>3</b><span><strong>少量提示</strong><small>显示约 35% 字母</small></span></button>
+            <button class="stage-button" data-stage="3"><b>4</b><span><strong>完整回忆</strong><small>只看中文拼英文</small></span></button>
+          </div>
+          <p class="rail-note">同一词连续出错时，先恢复 1 个字母提示，不直接公布完整答案。</p>
+        </aside>
+        <section class="gameboard">
+          <div class="hud"><div class="hud-group"><span>四年级基础</span><span>第 <b data-stage-number>1</b> 阶段</span><span>本段 <b data-progress-text>3 / 4</b> 词</span><span>连对 <b>7</b></span></div><button class="end-button">结束练习</button></div>
+          <div class="word-stage">
+            <p class="mascot-line">🌱 小芽提示：先看中文，再用键盘逐字拼出英文</p>
+            <div class="meaning"><small>CHINESE MEANING · 中文释义</small><strong data-cn>早晨</strong></div>
+            <button class="speak" aria-label="朗读当前英文">🔊 需要时听发音</button>
+            <p class="hint-label">当前可见乱序字母：<b data-hint-count>7 / 7</b></p>
+            <div class="letter-tray" data-hint></div>
+            <div class="slots" data-slots></div>
+            <div class="typing-row"><input class="typing-input" data-entry autocomplete="off" spellcheck="false" aria-label="输入英文单词" placeholder="在这里逐字输入英文…" /><button class="next-demo" data-next>演示下一词</button></div>
+            <p class="message" data-message role="status" aria-live="polite">已经拼出 mo，继续输入下一个字母</p>
+            <div class="upgrade" aria-label="提示阶段进度"><i class="on"></i><i></i><i></i><i></i></div>
+          </div>
+          <footer class="architecture"><span><b>正式实现：</b>共享 Typing Session 处理逐字输入，页面不直接监听 keydown。</span><span>正确后播放单词读音并自动进入下一词。</span></footer>
+        </section>
+      </main>
+      <footer class="comparison"><div><strong>儿童理解</strong><small>输入区域、乱序提示和答案槽在同一视觉轴线上。</small></div><div><strong>难度表达</strong><small>四级按钮直接展示“提示逐步减少”的唯一升级变量。</small></div><div><strong>取舍</strong><small>动画较克制，但最容易做成稳定、可测的纵向切片。</small></div></footer>
+    </section>
+
+    <section class="concept concept-b active" data-panel="b" data-stage="1" data-word="0" data-seed="li">
+      <header class="hero">
+        <div><p class="eyebrow">方案 B · 已选择 · 强化逐字反馈</p><h1>字母小火车：每打对一个字母，就装满一节车厢</h1><p>中文是本次目的地；打乱的字母像货物放在轨道旁。正确字母逐节点亮车厢，整列火车完成后自动驶向下一个中文站牌。</p></div>
+        <span class="hero-tag">已选择 · 最有游戏感</span>
+      </header>
+      <main class="layout">
+        <aside class="rule-rail">
+          <div><h2>四座拼写车站</h2><p>每站 4 个词；升级只减少货物字母，不额外加速。</p></div>
+          <div class="stage-list">
+            <button class="stage-button" data-stage="0"><b>1</b><span><strong>满载车站</strong><small>全部字母可见</small></span></button>
+            <button class="stage-button active" data-stage="1"><b>2</b><span><strong>轻装车站</strong><small>约 70% 可见</small></span></button>
+            <button class="stage-button" data-stage="2"><b>3</b><span><strong>记忆车站</strong><small>约 35% 可见</small></span></button>
+            <button class="stage-button" data-stage="3"><b>4</b><span><strong>独立出发</strong><small>不显示字母</small></span></button>
+          </div>
+          <p class="rail-note">错键只让当前车厢轻轻摇动；不会倒退，也不清空已经打对的字母。</p>
+        </aside>
+        <section class="gameboard">
+          <div class="hud"><div class="hud-group"><span>五年级进阶</span><span>第 <b data-stage-number>2</b> 车站</span><span>本段 <b data-progress-text>2 / 4</b> 词</span><span>连续发车 <b>5</b></span></div><button class="end-button">结束旅程</button></div>
+          <div class="word-stage">
+            <div class="station"><div><small>下一站中文目的地</small><strong data-cn>图书馆</strong></div><button class="speak">🔊 听发音</button></div>
+            <div class="train-scene"><div class="engine"></div><div class="carriages slots" data-slots></div></div>
+            <p class="hint-label">轨道旁剩余乱序货物：<b data-hint-count>5 / 7</b></p>
+            <div class="cargo-hints letter-tray" data-hint></div>
+            <div class="typing-row"><input class="typing-input" data-entry autocomplete="off" spellcheck="false" aria-label="输入英文单词" placeholder="键盘输入，让小火车装满…" /><button class="next-demo" data-next>演示发车</button></div>
+            <p class="message" data-message role="status" aria-live="polite">li 已装车，继续完成 library</p>
+            <div class="upgrade"><i class="on"></i><i class="on"></i><i></i><i></i></div>
+          </div>
+          <footer class="architecture"><span><b>正式实现：</b>车厢动画只消费 Typing Session 事件，不自行处理键盘。</span><span>支持 reduced-motion 时改为静态点亮。</span></footer>
+        </section>
+      </main>
+      <footer class="comparison"><div><strong>儿童理解</strong><small>“一个字母一节车厢”能直观解释逐字输入。</small></div><div><strong>难度表达</strong><small>四座车站让升级很有旅程感，但信息层级更多。</small></div><div><strong>取舍</strong><small>反馈最生动，需要额外列车动画、音效与低性能降级。</small></div></footer>
+    </section>
+
+    <section class="concept concept-c" data-panel="c" data-stage="3" data-word="0" data-seed="">
+      <header class="hero">
+        <div><p class="eyebrow">方案 C · 专注回忆 · 高阶段最清爽</p><h1>星光解码台：从字母线索走向独立拼写</h1><p>界面将中文线索与输入槽放到视觉中心，乱序字母只是可逐步关闭的辅助层。最终阶段完全隐藏字母，适合突出真正的“看中文写英文”。</p></div>
+        <span class="hero-tag">专注度最高 · 儿童叙事较弱</span>
+      </header>
+      <main class="layout">
+        <aside class="rule-rail">
+          <div><h2>四级解码权限</h2><p>每 4 词关闭一层提示；连续错误时可临时开启一颗提示星。</p></div>
+          <div class="stage-list">
+            <button class="stage-button" data-stage="0"><b>1</b><span><strong>全息字母</strong><small>显示全部乱序</small></span></button>
+            <button class="stage-button" data-stage="1"><b>2</b><span><strong>半隐字母</strong><small>显示约 70%</small></span></button>
+            <button class="stage-button" data-stage="2"><b>3</b><span><strong>星点提示</strong><small>显示约 35%</small></span></button>
+            <button class="stage-button active" data-stage="3"><b>4</b><span><strong>独立解码</strong><small>只看中文</small></span></button>
+          </div>
+          <p class="rail-note">不设置倒计时。排行榜按提示阶段隔离，避免无提示成绩与完整提示混排。</p>
+        </aside>
+        <section class="gameboard">
+          <div class="hud"><div class="hud-group"><span>六年级挑战</span><span>解码等级 <b data-stage-number>4</b></span><span>本段 <b data-progress-text>1 / 4</b> 词</span><span>连续正确 <b>11</b></span></div><button class="end-button">保存并离开</button></div>
+          <div class="decoder-stage">
+            <div class="decoder-symbol">✦</div>
+            <div class="decoder-meaning"><small>CHINESE CLUE · 中文线索</small><strong data-cn>老师</strong></div>
+            <button class="speak">🔊 朗读英文</button>
+            <p class="hint-label">当前字母线索：<b data-hint-count>0 / 7</b></p>
+            <div class="letter-tray" data-hint></div>
+            <div class="slots" data-slots></div>
+            <div class="typing-row"><input class="typing-input" data-entry autocomplete="off" spellcheck="false" aria-label="输入英文单词" placeholder="只看中文，输入完整英文…" /><button class="next-demo" data-next>演示下一题</button></div>
+            <p class="message" data-message role="status" aria-live="polite">没有字母提示，想好后从第一个字母开始</p>
+            <div class="upgrade"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
+          </div>
+          <footer class="architecture"><span><b>正式实现：</b>提示阶段写入 difficulty / speedTier / rulesVersion 隔离榜单。</span><span>语音有可见按钮，不作为唯一线索。</span></footer>
+        </section>
+      </main>
+      <footer class="comparison"><div><strong>儿童理解</strong><small>任务聚焦、干扰最少，适合熟悉规则后的孩子。</small></div><div><strong>难度表达</strong><small>最后一级“0 个字母”最明确，能强调主动回忆。</small></div><div><strong>取舍</strong><small>学习专注度高，但角色与场景故事弱于 A、B。</small></div></footer>
+    </section>
+  </div>
+
+  <script>
+    const WORDS = {
+      a: [
+        { cn: '早晨', en: 'morning', shuffled: 'gnimron' },
+        { cn: '熊猫', en: 'panda', shuffled: 'adnap' },
+        { cn: '窗户', en: 'window', shuffled: 'odnwiw' },
+      ],
+      b: [
+        { cn: '图书馆', en: 'library', shuffled: 'yrabril' },
+        { cn: '机场', en: 'airport', shuffled: 'rtiapro' },
+        { cn: '家庭作业', en: 'homework', shuffled: 'krowemoh' },
+      ],
+      c: [
+        { cn: '老师', en: 'teacher', shuffled: 'htraece' },
+        { cn: '地球', en: 'earth', shuffled: 'thrae' },
+        { cn: '季节', en: 'season', shuffled: 'nosaes' },
+      ],
+    }
+    const RATIOS = [1, .7, .35, 0]
+    const DEFAULT_PROGRESS = ['3 / 4', '2 / 4', '1 / 4', '1 / 4']
+
+    function renderSlots(panel, typed = '') {
+      const key = panel.dataset.panel
+      const word = WORDS[key][Number(panel.dataset.word)]
+      const slots = panel.querySelector('[data-slots]')
+      slots.innerHTML = ''
+      ;[...word.en].forEach((letter, index) => {
+        const slot = document.createElement('span')
+        slot.className = `${key === 'b' ? 'carriage' : 'slot'}${index < typed.length ? ' filled' : ''}`
+        slot.textContent = index < typed.length ? typed[index] : '·'
+        slots.appendChild(slot)
+      })
+    }
+
+    function renderPanel(panel, useSeed = false) {
+      const key = panel.dataset.panel
+      const stage = Number(panel.dataset.stage)
+      const word = WORDS[key][Number(panel.dataset.word)]
+      const visibleCount = Math.ceil(word.en.length * RATIOS[stage])
+      panel.querySelector('[data-cn]').textContent = word.cn
+      panel.querySelector('[data-stage-number]').textContent = String(stage + 1)
+      panel.querySelector('[data-progress-text]').textContent = DEFAULT_PROGRESS[stage]
+      panel.querySelector('[data-hint-count]').textContent = `${visibleCount} / ${word.en.length}`
+      panel.querySelectorAll('[data-stage]').forEach((button) => button.classList.toggle('active', Number(button.dataset.stage) === stage))
+      const hint = panel.querySelector('[data-hint]')
+      hint.innerHTML = ''
+      if (visibleCount === 0) {
+        const empty = document.createElement('span')
+        empty.className = 'no-hint'
+        empty.textContent = key === 'c' ? '本阶段不显示字母，只根据中文完整拼写' : '字母提示已隐藏'
+        hint.appendChild(empty)
+      } else {
+        ;[...word.shuffled.slice(0, visibleCount)].forEach((letter) => {
+          const tile = document.createElement('span')
+          tile.className = 'letter-tile'
+          tile.textContent = letter
+          hint.appendChild(tile)
+        })
+      }
+      const input = panel.querySelector('[data-entry]')
+      input.value = useSeed ? panel.dataset.seed : ''
+      renderSlots(panel, input.value)
+      panel.querySelectorAll('.upgrade i').forEach((item, index) => item.classList.toggle('on', index <= stage))
+    }
+
+    function activatePanel(key, updateHash = true) {
+      document.querySelectorAll('[data-panel]').forEach((panel) => panel.classList.toggle('active', panel.dataset.panel === key))
+      document.querySelectorAll('[data-show]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.show === key)))
+      if (updateHash) history.replaceState(null, '', `#${key}`)
+    }
+
+    document.querySelectorAll('[data-show]').forEach((button) => button.addEventListener('click', () => activatePanel(button.dataset.show)))
+    document.querySelectorAll('.concept').forEach((panel) => {
+      renderPanel(panel, true)
+      panel.querySelectorAll('[data-stage]').forEach((button) => button.addEventListener('click', () => {
+        panel.dataset.stage = button.dataset.stage
+        renderPanel(panel)
+        panel.querySelector('[data-message]').textContent = Number(button.dataset.stage) === 3
+          ? '只看中文，完整拼出英文单词'
+          : '提示数量已调整，试着从第一个字母开始'
+      }))
+      panel.querySelector('[data-next]').addEventListener('click', () => {
+        panel.dataset.word = String((Number(panel.dataset.word) + 1) % WORDS[panel.dataset.panel].length)
+        renderPanel(panel)
+        panel.querySelector('[data-message]').textContent = '已换到下一条中文线索，开始拼写吧'
+      })
+      const input = panel.querySelector('[data-entry]')
+      input.addEventListener('input', () => {
+        const word = WORDS[panel.dataset.panel][Number(panel.dataset.word)]
+        const typed = input.value.toLowerCase().replace(/[^a-z]/g, '').slice(0, word.en.length)
+        input.value = typed
+        if (!word.en.startsWith(typed)) {
+          input.classList.add('bad')
+          input.value = typed.slice(0, -1)
+          renderSlots(panel, input.value)
+          panel.querySelector('[data-message]').textContent = '这个字母还不对，已经打对的部分会保留'
+          window.setTimeout(() => input.classList.remove('bad'), 360)
+          return
+        }
+        renderSlots(panel, typed)
+        panel.querySelector('[data-message]').textContent = typed === word.en
+          ? `拼写正确！${word.en} 就是“${word.cn}”`
+          : typed.length === 0
+            ? '从第一个字母开始输入'
+            : `已经完成 ${typed.length} / ${word.en.length} 个字母`
+        if (typed === word.en) {
+          window.setTimeout(() => {
+            panel.dataset.word = String((Number(panel.dataset.word) + 1) % WORDS[panel.dataset.panel].length)
+            renderPanel(panel)
+            panel.querySelector('[data-message]').textContent = '自动进入下一词，继续加油'
+          }, 700)
+        }
+      })
+    })
+
+    const initial = ['a', 'b', 'c'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'b'
+    activatePanel(initial, false)
+  </script>
+</body>
+</html>

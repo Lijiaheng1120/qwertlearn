@@ -7,12 +7,14 @@ const keyboardGamePages = [
   'pages/TrainingPage.tsx',
   'pages/FrogGamePage.tsx',
   'pages/ChaseGamePage.tsx',
+  'pages/SpellGamePage.tsx',
 ] as const
 const gamePages = [...keyboardGamePages, 'pages/MatchGamePage.tsx'] as const
 const vocabularyGamePages = [
   'pages/FrogGamePage.tsx',
   'pages/ChaseGamePage.tsx',
   'pages/MatchGamePage.tsx',
+  'pages/SpellGamePage.tsx',
 ] as const
 
 function readSource(relativePath: string): string {
@@ -67,7 +69,19 @@ describe('production architecture contracts', () => {
     expect(source).toMatch(/progressStore\.saveRun\(/)
     expect(source).toContain("from '../core/audio-service'")
     expect(source).toMatch(/audioService\.(?:play|speak)\(/)
-    expect(source).toMatch(/rulesVersion: (?:'1\.2\.0'|FROG_RULES_VERSION|CHASE_RULES_VERSION)/)
+    expect(source).toMatch(/rulesVersion: (?:'1\.2\.0'|FROG_RULES_VERSION|CHASE_RULES_VERSION|SPELL_RULES_VERSION)/)
+  })
+
+  it('keeps Letter Train hints, timing, and visual carriages behind shared engines', () => {
+    const source = readSource('pages/SpellGamePage.tsx')
+
+    expect(source).toContain("from '../core/spell-engine'")
+    expect(source).toMatch(/createSpellLetterOrder\(/)
+    expect(source).toMatch(/buildSpellHint\(/)
+    expect(source).toMatch(/nextSpellMistakeStreak\(/)
+    expect(source).toContain("from '../core/run-clock'")
+    expect(source).toMatch(/new ActiveRunClock\(\)/)
+    expect(source).toContain('SPELL_AUTO_ADVANCE_DELAY_MS')
   })
 
   it('keeps the frog attached to the shared moving-pad motion helper', () => {
@@ -89,7 +103,8 @@ describe('production architecture contracts', () => {
     expect(source).toMatch(/progressStore\.saveRun\(/)
     expect(source).toContain("from '../core/audio-service'")
     expect(source).toMatch(/audioService\.(?:play|speak)\(/)
-    expect(source).toMatch(/rulesVersion: MATCH_RULES_VERSION/)
+    expect(source).toContain('getMatchEndlessRoundRules')
+    expect(source).toContain("MATCH_ENDLESS_RULES_VERSION : MATCH_RULES_VERSION")
   })
 
   it.each(vocabularyGamePages)('%s uses the shared randomized word session', (page) => {

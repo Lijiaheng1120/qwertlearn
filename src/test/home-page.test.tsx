@@ -4,7 +4,7 @@ import { EMPTY_DASHBOARD, type RunResult } from '../core/models'
 import { HomePage } from '../pages/HomePage'
 
 describe('HomePage', () => {
-  it('makes all six learning and growth entrances discoverable', () => {
+  it('makes every learning and growth entrance discoverable', () => {
     const navigate = vi.fn()
     const { container } = render(
       <HomePage
@@ -22,6 +22,7 @@ describe('HomePage', () => {
     expect(screen.getByRole('button', { name: /青蛙跳荷叶/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /城市追踪战/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /词语花园连连看/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /字母小火车/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '我的单词本' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '成长奖励' })).toBeInTheDocument()
     expect(screen.getByText('你有 0 冒险积分')).toBeInTheDocument()
@@ -30,6 +31,8 @@ describe('HomePage', () => {
     expect(navigate).toHaveBeenCalledWith('frog')
     fireEvent.click(screen.getByRole('button', { name: /词语花园连连看/ }))
     expect(navigate).toHaveBeenCalledWith('match')
+    fireEvent.click(screen.getByRole('button', { name: /字母小火车/ }))
+    expect(navigate).toHaveBeenCalledWith('spell')
     fireEvent.click(screen.getByRole('button', { name: '返回冒险地图' }))
     expect(navigate).toHaveBeenCalledWith('home')
     fireEvent.click(screen.getByRole('button', { name: '键位训练' }))
@@ -70,6 +73,7 @@ describe('HomePage', () => {
           accuracy: 0.9,
           practiceDays: 3,
           bestChaseMs: 32_000,
+          highestSpellStage: 3,
           recentRuns: [run],
         }}
         audioSettings={{ muted: false, music: 0.35, sfx: 0.7, voice: 1, ui: 0.5 }}
@@ -81,6 +85,7 @@ describe('HomePage', () => {
     expect(container.querySelector('.progress-track i')).toHaveStyle({ width: '50%' })
     expect(screen.getByText('90%')).toBeInTheDocument()
     expect(screen.getByText('最佳 32 秒')).toBeInTheDocument()
+    expect(screen.getByText('最高第 3 站')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '关闭声音' }))
     expect(toggleAudio).toHaveBeenCalledOnce()

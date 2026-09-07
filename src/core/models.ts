@@ -1,4 +1,4 @@
-export type GameId = 'training' | 'frog' | 'chase' | 'match'
+export type GameId = 'training' | 'frog' | 'chase' | 'match' | 'spell'
 export type LearningMode = 'key' | 'copy' | 'recall' | 'dictation' | 'review'
 
 export interface WordEntry {
@@ -153,6 +153,7 @@ export interface RunResult {
   correctCharacters: number
   mistakes: number
   failures?: number
+  rescueHints?: number
   maxStreak: number
   score: number
   words: string[]
@@ -198,6 +199,8 @@ export interface DashboardSummary {
   highestFrogStage: number
   highestChaseStage: number
   highestMatchStage: number
+  highestSpellStage: number
+  matchEndlessUnlocked: boolean
   totalMinutes: number
   todayMinutes: number
   accuracy: number
@@ -225,6 +228,8 @@ export const EMPTY_DASHBOARD: DashboardSummary = {
   highestFrogStage: 0,
   highestChaseStage: 0,
   highestMatchStage: 0,
+  highestSpellStage: 0,
+  matchEndlessUnlocked: false,
   totalMinutes: 0,
   todayMinutes: 0,
   accuracy: 1,

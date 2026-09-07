@@ -7,12 +7,14 @@ vi.mock('../pages/FrogGamePage', () => ({ FrogGamePage: () => <p>frog-component<
 vi.mock('../pages/ChaseGamePage', () => ({ ChaseGamePage: () => <p>chase-component</p> }))
 vi.mock('../pages/TrainingPage', () => ({ TrainingPage: () => <p>training-component</p> }))
 vi.mock('../pages/MatchGamePage', () => ({ MatchGamePage: () => <p>match-component</p> }))
+vi.mock('../pages/SpellGamePage', () => ({ SpellGamePage: () => <p>spell-component</p> }))
 
 const audioSettings: AudioSettings = { muted: false, music: 0.35, sfx: 0.7, voice: 1, ui: 0.5 }
 const sharedProps = {
   audioSettings,
   wordMemory: [],
   highestFrogStage: 0,
+  matchEndlessUnlocked: false,
   equippedRewards: {},
   navigate: vi.fn(),
   toggleAudio: vi.fn(),
@@ -32,5 +34,8 @@ describe('GamePages', () => {
 
     view.rerender(<GamePages route="match" {...sharedProps} />)
     expect(screen.getByText('match-component')).toBeInTheDocument()
+
+    view.rerender(<GamePages route="spell" {...sharedProps} />)
+    expect(screen.getByText('spell-component')).toBeInTheDocument()
   })
 })

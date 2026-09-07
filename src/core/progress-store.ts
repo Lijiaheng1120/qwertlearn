@@ -1,4 +1,5 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
+import { MATCH_FINAL_STAGE } from './challenge-progression'
 import {
   ALL_VOCABULARY_WORDS,
   buildLeaderboardKey,
@@ -59,6 +60,7 @@ function normalizeRun(run: RunResult): RunResult {
     ...run,
     pausedMs: Number.isFinite(run.pausedMs) ? run.pausedMs : 0,
     failures: Math.max(0, Number.isFinite(run.failures) ? Math.round(run.failures!) : 0),
+    rescueHints: Math.max(0, Number.isFinite(run.rescueHints) ? Math.round(run.rescueHints!) : 0),
     usedFullHints: run.usedFullHints ?? true,
     wordIds: Array.isArray(run.wordIds) ? run.wordIds : [],
     mistakeWordIds: Array.isArray(run.mistakeWordIds) ? run.mistakeWordIds : [],
@@ -255,7 +257,7 @@ export class ProgressStore {
 
   async getLeaderboard(boardKey: string, limit = 10): Promise<RunResult[]> {
     const gameId = boardKey.split(':', 1)[0] as GameId
-    const runs = ['training', 'frog', 'chase', 'match'].includes(gameId)
+    const runs = ['training', 'frog', 'chase', 'match', 'spell'].includes(gameId)
       ? await this.listRunsByGame(gameId)
       : await this.listRuns()
     return runs
@@ -302,6 +304,15 @@ export class ProgressStore {
       highestMatchStage: runs
         .filter((run) => run.gameId === 'match')
         .reduce((highest, run) => Math.max(highest, run.highestStage ?? 1), 0),
+      highestSpellStage: runs
+        .filter((run) => run.gameId === 'spell')
+        .reduce((highest, run) => Math.max(highest, run.highestStage ?? 1), 0),
+      matchEndlessUnlocked: runs.some((run) => (
+        run.gameId === 'match'
+        && run.challengeMode !== 'endless'
+        && run.completed
+        && (run.highestStage ?? 1) >= MATCH_FINAL_STAGE
+      )),
       totalMinutes: Math.round(runs.reduce((sum, run) => sum + run.durationMs, 0) / 60_000),
       todayMinutes: Math.round(todayRuns.reduce((sum, run) => sum + run.durationMs, 0) / 60_000),
       accuracy: correctCharacters + mistakes === 0 ? 1 : correctCharacters / (correctCharacters + mistakes),

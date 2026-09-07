@@ -5,8 +5,16 @@ export const FROG_MAX_FAILURES = 3
 export const FROG_RULES_VERSION = '1.4.0'
 export const CHASE_RULES_VERSION = '1.3.0'
 export const MATCH_RULES_VERSION = '1.1.0'
+export const MATCH_ENDLESS_RULES_VERSION = '1.0.0'
 export const MATCH_FINAL_STAGE = 3
+export const MATCH_MAX_FAILURES = 3
 export const MATCH_AUTO_ADVANCE_DELAY_MS = 900
+export const SPELL_RULES_VERSION = '1.0.0'
+export const SPELL_WORDS_PER_STAGE = 4
+export const SPELL_FINAL_STAGE = 4
+export const SPELL_RUN_WORD_COUNT = SPELL_WORDS_PER_STAGE * SPELL_FINAL_STAGE
+export const SPELL_AUTO_ADVANCE_DELAY_MS = 700
+export const SPELL_RESCUE_AFTER_MISTAKES = 2
 export const CHASE_RUN_DURATION_MS = 90_000
 export const CHASE_START_DISTANCE = 100
 export const CHASE_MAX_DISTANCE = 160
@@ -33,6 +41,23 @@ export interface MatchStageRules {
   maxWordDifficulty: 2 | 3 | 5
   roundDurationMs: number | null
   label: '萌芽' | '开花' | '盛放'
+}
+
+export interface MatchEndlessRoundRules {
+  roundNumber: number
+  pairCount: 8 | 10 | 12
+  maxWordDifficulty: 5
+  roundDurationMs: number
+  label: string
+}
+
+export type SpellHintMode = 'full-scramble' | 'partial-scramble' | 'sparse-scramble' | 'recall'
+
+export interface SpellStageRules {
+  stageLevel: 1 | 2 | 3 | 4
+  hintRatio: 1 | 0.7 | 0.35 | 0
+  hintMode: SpellHintMode
+  label: '满载车站' | '轻装车站' | '记忆车站' | '独立出发'
 }
 
 function positiveStage(stageLevel: number): number {
@@ -109,4 +134,55 @@ export function getMatchStageRules(stageLevel: number): MatchStageRules {
     return { stageLevel: 2, pairCount: 6, maxWordDifficulty: 3, roundDurationMs: 120_000, label: '开花' }
   }
   return { stageLevel: 3, pairCount: 8, maxWordDifficulty: 5, roundDurationMs: 90_000, label: '盛放' }
+}
+
+
+export function spellStageForCompletedWords(completedWords: number): SpellStageRules['stageLevel'] {
+  const completed = Math.max(0, Number.isFinite(completedWords) ? Math.floor(completedWords) : 0)
+  return Math.min(SPELL_FINAL_STAGE, 1 + Math.floor(completed / SPELL_WORDS_PER_STAGE)) as SpellStageRules['stageLevel']
+}
+
+export function spellWordsIntoStage(completedWords: number): number {
+  const completed = Math.max(0, Number.isFinite(completedWords) ? Math.floor(completedWords) : 0)
+  return completed % SPELL_WORDS_PER_STAGE
+}
+
+export function getSpellStageRules(stageLevel: number): SpellStageRules {
+  const stage = Math.min(SPELL_FINAL_STAGE, positiveStage(stageLevel)) as SpellStageRules['stageLevel']
+  if (stage === 1) return { stageLevel: 1, hintRatio: 1, hintMode: 'full-scramble', label: '满载车站' }
+  if (stage === 2) return { stageLevel: 2, hintRatio: 0.7, hintMode: 'partial-scramble', label: '轻装车站' }
+  if (stage === 3) return { stageLevel: 3, hintRatio: 0.35, hintMode: 'sparse-scramble', label: '记忆车站' }
+  return { stageLevel: 4, hintRatio: 0, hintMode: 'recall', label: '独立出发' }
+}
+
+export function getSpellVisibleLetterCount(
+  wordLength: number,
+  stageLevel: number,
+  consecutiveMistakes = 0,
+): number {
+  const length = Math.max(0, Number.isFinite(wordLength) ? Math.floor(wordLength) : 0)
+  if (length === 0) return 0
+  const stage = getSpellStageRules(stageLevel).stageLevel
+  const partial = length <= 1
+    ? length
+    : Math.max(1, Math.min(length - 1, Math.round(length * 0.7)))
+  const sparse = length <= 2
+    ? Math.min(1, length)
+    : Math.max(1, Math.min(partial - 1, Math.round(length * 0.35)))
+  const baseCount = stage === 1 ? length : stage === 2 ? partial : stage === 3 ? sparse : 0
+  const mistakes = Math.max(0, Number.isFinite(consecutiveMistakes) ? Math.floor(consecutiveMistakes) : 0)
+  const rescueCount = mistakes >= SPELL_RESCUE_AFTER_MISTAKES && baseCount < length ? 1 : 0
+  return Math.min(length, baseCount + rescueCount)
+}
+
+export function getMatchEndlessRoundRules(roundNumber: number): MatchEndlessRoundRules {
+  const round = positiveStage(roundNumber)
+  const pairCount = round === 1 ? 8 : round === 2 ? 10 : 12
+  return {
+    roundNumber: round,
+    pairCount,
+    maxWordDifficulty: 5,
+    roundDurationMs: Math.max(45_000, 100_000 - (round - 1) * 5_000),
+    label: `第 ${round} 轮`,
+  }
 }

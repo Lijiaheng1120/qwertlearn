@@ -22,10 +22,11 @@ const audioSettings: AudioSettings = {
   ui: 0.5,
 }
 
-function renderGame() {
+function renderGame(initialEndlessUnlocked = false) {
   return render(
     <MatchGamePage
       audioSettings={audioSettings}
+      initialEndlessUnlocked={initialEndlessUnlocked}
       navigate={vi.fn()}
       toggleAudio={vi.fn()}
       onRunSaved={vi.fn().mockResolvedValue(undefined)}
@@ -82,6 +83,7 @@ describe('MatchGamePage', () => {
     vi.spyOn(audioService, 'speak').mockImplementation(() => {})
     const view = renderGame()
 
+    expect(screen.getByRole('button', { name: /无尽挑战/ })).toBeDisabled()
     await matchVisiblePairs(view.container)
     expect(screen.getByText('萌芽关完成！')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /进入下一关/ })).not.toBeInTheDocument()
@@ -96,6 +98,9 @@ describe('MatchGamePage', () => {
     await matchVisiblePairs(view.container)
     await act(async () => Promise.resolve())
     expect(screen.getByRole('heading', { name: '词语花园盛开了！' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /无尽挑战/ })).toHaveTextContent('8 / 10 / 12 对 · 三次失败结束')
+    fireEvent.click(screen.getByRole('button', { name: '再种一座花园' }))
+    expect(screen.getByRole('button', { name: /无尽挑战/ })).toBeEnabled()
     expect(saveRun).toHaveBeenCalledOnce()
     expect(saveRun.mock.calls[0][0]).toMatchObject({
       gameId: 'match',
@@ -108,6 +113,99 @@ describe('MatchGamePage', () => {
       highestStage: 3,
       usedFullHints: false,
     })
+  })
+
+
+  it('automatically grows endless rounds from 8 to 10 to 12 pairs and saves the isolated mode', async () => {
+    vi.useFakeTimers()
+    const saveRun = vi.spyOn(progressStore, 'saveRun').mockResolvedValue('indexeddb')
+    vi.spyOn(audioService, 'play').mockImplementation(() => {})
+    vi.spyOn(audioService, 'speak').mockImplementation(() => {})
+    const view = renderGame(true)
+
+    fireEvent.click(screen.getByRole('button', { name: /无尽挑战/ }))
+    expect(screen.getByRole('button', { name: /无尽挑战/ })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByLabelText('失败 0 次，最多 3 次')).toBeInTheDocument()
+    expect(view.container.querySelectorAll('.match-word-card:not(.meaning)')).toHaveLength(8)
+
+    await matchVisiblePairs(view.container)
+    expect(screen.getByText('第 1 轮完成！')).toBeInTheDocument()
+    await waitForAutomaticStageAdvance()
+    expect(view.container.querySelector('.match-hud')).toHaveTextContent('第 2 轮')
+    expect(view.container.querySelectorAll('.match-word-card:not(.meaning)')).toHaveLength(10)
+
+    await matchVisiblePairs(view.container)
+    await waitForAutomaticStageAdvance()
+    expect(view.container.querySelector('.match-hud')).toHaveTextContent('第 3 轮')
+    expect(view.container.querySelectorAll('.match-word-card:not(.meaning)')).toHaveLength(12)
+
+    fireEvent.click(screen.getByRole('button', { name: '结束本局并结算' }))
+    await act(async () => Promise.resolve())
+    expect(screen.getByRole('heading', { name: '本次无尽花园已结算' })).toBeInTheDocument()
+    expect(saveRun).toHaveBeenCalledOnce()
+    expect(saveRun.mock.calls[0][0]).toMatchObject({
+      gameId: 'match',
+      rulesVersion: '1.0.0',
+      challengeMode: 'endless',
+      completed: true,
+      correctWords: 18,
+      failures: 0,
+      startStage: 1,
+      highestStage: 3,
+    })
+  })
+
+  it('retries the same endless round after timeouts and stops exactly on the third failure', async () => {
+    vi.useFakeTimers()
+    let currentTime = 0
+    vi.spyOn(performance, 'now').mockImplementation(() => currentTime)
+    const saveRun = vi.spyOn(progressStore, 'saveRun').mockResolvedValue('indexeddb')
+    vi.spyOn(audioService, 'play').mockImplementation(() => {})
+    vi.spyOn(audioService, 'speak').mockImplementation(() => {})
+    const view = renderGame(true)
+    fireEvent.click(screen.getByRole('button', { name: /无尽挑战/ }))
+
+    const expireCurrentRound = async (failure: number) => {
+      const firstCard = view.container.querySelector<HTMLButtonElement>('.match-word-card:not(.meaning):not(:disabled)')
+      if (!firstCard) throw new Error('Missing endless English card')
+      fireEvent.click(firstCard)
+      currentTime += 100_100
+      await act(async () => {
+        vi.advanceTimersByTime(100)
+        await Promise.resolve()
+      })
+      expect(screen.getByLabelText(`失败 ${failure} 次，最多 3 次`)).toBeInTheDocument()
+    }
+
+    await expireCurrentRound(1)
+    expect(screen.getByText('第 1 轮超时，失败 1/3，即将换牌重试')).toBeInTheDocument()
+    await waitForAutomaticStageAdvance()
+    expect(view.container.querySelector('.match-hud')).toHaveTextContent('第 1 轮')
+    expect(view.container.querySelectorAll('.match-word-card:not(.meaning)')).toHaveLength(8)
+
+    await expireCurrentRound(2)
+    await waitForAutomaticStageAdvance()
+    expect(view.container.querySelector('.match-hud')).toHaveTextContent('第 1 轮')
+
+    await expireCurrentRound(3)
+    expect(screen.getByRole('heading', { name: '无尽花园暂时休息' })).toBeInTheDocument()
+    expect(screen.getByText(/累计失败 3\/3 次，本局结束/)).toBeInTheDocument()
+    await act(async () => Promise.resolve())
+    expect(saveRun).toHaveBeenCalledOnce()
+    expect(saveRun.mock.calls[0][0]).toMatchObject({
+      gameId: 'match',
+      rulesVersion: '1.0.0',
+      challengeMode: 'endless',
+      completed: false,
+      correctWords: 0,
+      mistakes: 24,
+      failures: 3,
+      startStage: 1,
+      highestStage: 1,
+    })
+
+    act(() => vi.advanceTimersByTime(60_000))
+    expect(saveRun).toHaveBeenCalledOnce()
   })
 
   it('selects an advanced vocabulary level and isolates its saved run', async () => {

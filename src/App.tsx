@@ -8,11 +8,11 @@ import { ParentDashboard } from './pages/ParentDashboard'
 import { RewardCabinetPage } from './pages/RewardCabinetPage'
 import { WordBookPage } from './pages/WordBookPage'
 
-export type AppRoute = 'home' | 'training' | 'frog' | 'chase' | 'match' | 'wordbook' | 'rewards' | 'parent'
+export type AppRoute = 'home' | 'training' | 'frog' | 'chase' | 'match' | 'spell' | 'wordbook' | 'rewards' | 'parent'
 
 function readRoute(): AppRoute {
   const value = window.location.hash.replace(/^#\/?/, '')
-  return ['training', 'frog', 'chase', 'match', 'wordbook', 'rewards', 'parent'].includes(value)
+  return ['training', 'frog', 'chase', 'match', 'spell', 'wordbook', 'rewards', 'parent'].includes(value)
     ? value as AppRoute
     : 'home'
 }
@@ -107,6 +107,7 @@ export function App() {
       route={route}
       wordMemory={summary.wordMemory}
       highestFrogStage={summary.highestFrogStage}
+      matchEndlessUnlocked={summary.matchEndlessUnlocked}
       equippedRewards={summary.rewardState.equippedRewards}
       audioSettings={audioSettings}
       navigate={navigate}

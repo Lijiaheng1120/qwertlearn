@@ -9,6 +9,7 @@ export type AudioEventId =
   | 'match.correct'
   | 'match.wrong'
   | 'match.clear'
+  | 'spell.depart'
   | 'run.success'
   | 'run.failure'
   | 'level.up'
@@ -48,6 +49,7 @@ const EVENT_TONES: Record<AudioEventId, { channel: AudioChannel; frequency: numb
   'match.correct': { channel: 'sfx', frequency: 700, duration: 0.08 },
   'match.wrong': { channel: 'sfx', frequency: 220, duration: 0.1 },
   'match.clear': { channel: 'sfx', frequency: 820, duration: 0.2 },
+  'spell.depart': { channel: 'sfx', frequency: 560, duration: 0.16 },
   'run.success': { channel: 'sfx', frequency: 720, duration: 0.25 },
   'run.failure': { channel: 'sfx', frequency: 250, duration: 0.2 },
   'level.up': { channel: 'sfx', frequency: 860, duration: 0.18 },

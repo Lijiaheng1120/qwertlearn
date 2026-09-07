@@ -23,6 +23,7 @@ describe('AudioService', () => {
     const service = new AudioService()
     await expect(service.unlock()).resolves.toBeUndefined()
     expect(() => service.play('run.failure')).not.toThrow()
+    expect(() => service.play('spell.depart')).not.toThrow()
   })
 
   it('pauses registered music while hidden and resumes when visible', () => {

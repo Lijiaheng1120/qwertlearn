@@ -7,9 +7,20 @@ import {
   getChaseStageRules,
   getFrogRoundDurationMs,
   getFrogStageRules,
+  getMatchEndlessRoundRules,
   getMatchStageRules,
+  getSpellStageRules,
+  getSpellVisibleLetterCount,
   MATCH_AUTO_ADVANCE_DELAY_MS,
+  MATCH_ENDLESS_RULES_VERSION,
+  MATCH_MAX_FAILURES,
   MATCH_RULES_VERSION,
+  SPELL_AUTO_ADVANCE_DELAY_MS,
+  SPELL_RESCUE_AFTER_MISTAKES,
+  SPELL_RULES_VERSION,
+  SPELL_RUN_WORD_COUNT,
+  spellStageForCompletedWords,
+  spellWordsIntoStage,
   stageForCompletedWords,
   wordsIntoStage,
 } from '../core/challenge-progression'
@@ -49,8 +60,10 @@ describe('challenge progression', () => {
       .toMatchObject({ speedTier: 5, hintLevel: 0, recentAccuracy: 0.7 })
   })
 
-  it('progresses the Word Garden automatically from 4 untimed pairs to 8 timed pairs', () => {
+  it('keeps the three-stage garden stable and defines bounded endless rounds', () => {
     expect(MATCH_RULES_VERSION).toBe('1.1.0')
+    expect(MATCH_ENDLESS_RULES_VERSION).toBe('1.0.0')
+    expect(MATCH_MAX_FAILURES).toBe(3)
     expect(MATCH_AUTO_ADVANCE_DELAY_MS).toBe(900)
     expect(getMatchStageRules(1)).toEqual({
       stageLevel: 1,
@@ -62,6 +75,58 @@ describe('challenge progression', () => {
     expect(getMatchStageRules(2)).toMatchObject({ pairCount: 6, maxWordDifficulty: 3, roundDurationMs: 120_000 })
     expect(getMatchStageRules(3)).toMatchObject({ pairCount: 8, maxWordDifficulty: 5, roundDurationMs: 90_000 })
     expect(getMatchStageRules(99)).toEqual(getMatchStageRules(3))
+
+    expect(getMatchEndlessRoundRules(1)).toEqual({
+      roundNumber: 1,
+      pairCount: 8,
+      maxWordDifficulty: 5,
+      roundDurationMs: 100_000,
+      label: '第 1 轮',
+    })
+    expect(getMatchEndlessRoundRules(2)).toMatchObject({ pairCount: 10, roundDurationMs: 95_000 })
+    expect(getMatchEndlessRoundRules(3)).toMatchObject({ pairCount: 12, roundDurationMs: 90_000 })
+    expect(getMatchEndlessRoundRules(99)).toMatchObject({ pairCount: 12, roundDurationMs: 45_000 })
+    expect(getMatchEndlessRoundRules(0)).toEqual(getMatchEndlessRoundRules(1))
+  })
+
+
+  it('moves the Letter Train through four hint stations every four completed words', () => {
+    expect(SPELL_RULES_VERSION).toBe('1.0.0')
+    expect(SPELL_AUTO_ADVANCE_DELAY_MS).toBe(700)
+    expect(SPELL_RESCUE_AFTER_MISTAKES).toBe(2)
+    expect(SPELL_RUN_WORD_COUNT).toBe(16)
+    expect(spellStageForCompletedWords(0)).toBe(1)
+    expect(spellStageForCompletedWords(3)).toBe(1)
+    expect(spellStageForCompletedWords(4)).toBe(2)
+    expect(spellStageForCompletedWords(8)).toBe(3)
+    expect(spellStageForCompletedWords(12)).toBe(4)
+    expect(spellStageForCompletedWords(99)).toBe(4)
+    expect(spellStageForCompletedWords(-1)).toBe(1)
+    expect(spellWordsIntoStage(9)).toBe(1)
+    expect(getSpellStageRules(1)).toEqual({ stageLevel: 1, hintRatio: 1, hintMode: 'full-scramble', label: '满载车站' })
+    expect(getSpellStageRules(2)).toEqual({ stageLevel: 2, hintRatio: 0.7, hintMode: 'partial-scramble', label: '轻装车站' })
+    expect(getSpellStageRules(3)).toEqual({ stageLevel: 3, hintRatio: 0.35, hintMode: 'sparse-scramble', label: '记忆车站' })
+    expect(getSpellStageRules(99)).toEqual({ stageLevel: 4, hintRatio: 0, hintMode: 'recall', label: '独立出发' })
+  })
+
+  it('reduces scrambled letters monotonically and grants only one rescue letter', () => {
+    expect(getSpellVisibleLetterCount(7, 1)).toBe(7)
+    expect(getSpellVisibleLetterCount(7, 2)).toBe(5)
+    expect(getSpellVisibleLetterCount(7, 3)).toBe(2)
+    expect(getSpellVisibleLetterCount(7, 4)).toBe(0)
+    expect(getSpellVisibleLetterCount(7, 4, 1)).toBe(0)
+    expect(getSpellVisibleLetterCount(7, 4, 2)).toBe(1)
+    expect(getSpellVisibleLetterCount(7, 2, 2)).toBe(6)
+    expect(getSpellVisibleLetterCount(7, 1, 99)).toBe(7)
+    expect(getSpellVisibleLetterCount(-1, 1)).toBe(0)
+
+    for (let length = 3; length <= 12; length += 1) {
+      const counts = [1, 2, 3, 4].map((stage) => getSpellVisibleLetterCount(length, stage))
+      expect(counts[0]).toBe(length)
+      expect(counts[0]).toBeGreaterThan(counts[1])
+      expect(counts[1]).toBeGreaterThan(counts[2])
+      expect(counts[2]).toBeGreaterThan(counts[3])
+    }
   })
 
   it('builds six repeating districts with bounded target speed and useful word gains', () => {

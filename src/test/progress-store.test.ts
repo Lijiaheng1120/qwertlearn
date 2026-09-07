@@ -74,6 +74,8 @@ describe('ProgressStore', () => {
     expect(summary.highestFrogStage).toBe(1)
     expect(summary.highestChaseStage).toBe(0)
     expect(summary.highestMatchStage).toBe(0)
+    expect(summary.highestSpellStage).toBe(0)
+    expect(summary.matchEndlessUnlocked).toBe(false)
   })
 
   it('falls back to instance-local memory when IndexedDB is unavailable', async () => {
@@ -187,11 +189,96 @@ describe('ProgressStore', () => {
     expect((await store.getLeaderboard(buildLeaderboardKey(matchRun))).map((run) => run.id)).toEqual(['match-grade5'])
     const summary = await store.getDashboardSummary()
     expect(summary.highestMatchStage).toBe(3)
+    expect(summary.matchEndlessUnlocked).toBe(true)
     expect(summary.wordMemory).toContainEqual(expect.objectContaining({
       wordId: 'g5-airport',
       mistakeCount: 1,
       needsReview: true,
     }))
+  })
+
+  it('persists Letter Train rescue data, stage progress, word memory, and isolated boards', async () => {
+    const store = createStore()
+    const spellRun = createRun({
+      id: 'spell-grade6-complete',
+      gameId: 'spell',
+      mode: 'recall',
+      wordPackId: 'fltrp-grade6-v1',
+      difficulty: 4,
+      speedTier: 1,
+      rulesVersion: '1.0.0',
+      highestStage: 4,
+      correctWords: 1,
+      correctCharacters: 6,
+      mistakes: 2,
+      rescueHints: 1,
+      words: ['letter'],
+      wordIds: ['g6-letter'],
+      mistakeWordIds: ['g6-letter'],
+      score: 1_200,
+      usedFullHints: false,
+    })
+    const earlyRun = createRun({
+      id: 'spell-grade6-early',
+      gameId: 'spell',
+      mode: 'recall',
+      wordPackId: 'fltrp-grade6-v1',
+      difficulty: 2,
+      rulesVersion: '1.0.0',
+      highestStage: 2,
+      score: 9_000,
+    })
+    await store.saveRun(spellRun)
+    await store.saveRun(earlyRun)
+
+    const spellRunIds = (await store.listRunsByGame('spell')).map((run) => run.id)
+    expect(spellRunIds).toHaveLength(2)
+    expect(spellRunIds).toEqual(expect.arrayContaining([
+      'spell-grade6-early',
+      'spell-grade6-complete',
+    ]))
+    expect((await store.getLeaderboard(buildLeaderboardKey(spellRun))).map((run) => run.id))
+      .toEqual(['spell-grade6-complete'])
+    const savedSpell = (await store.listRunsByGame('spell')).find((run) => run.id === spellRun.id)
+    expect(savedSpell?.rescueHints).toBe(1)
+    const summary = await store.getDashboardSummary()
+    expect(summary.highestSpellStage).toBe(4)
+    expect(summary.wordMemory).toContainEqual(expect.objectContaining({
+      wordId: 'g6-letter',
+      mistakeCount: 1,
+      needsReview: true,
+    }))
+  })
+
+  it('unlocks Match endless only after a completed learning run clears stage three', async () => {
+    const store = createStore()
+    const matchRun = (id: string, overrides: Partial<RunResult>) => createRun({
+      id,
+      gameId: 'match',
+      mode: 'recall',
+      wordPackId: 'fltrp-grade4-v1',
+      rulesVersion: '1.1.0',
+      ...overrides,
+    })
+
+    await store.saveRun(matchRun('match-learning-incomplete', {
+      challengeMode: 'learning',
+      completed: false,
+      highestStage: 3,
+    }))
+    await store.saveRun(matchRun('match-endless-high', {
+      challengeMode: 'endless',
+      completed: true,
+      highestStage: 12,
+    }))
+    expect((await store.getDashboardSummary()).matchEndlessUnlocked).toBe(false)
+
+    await store.saveRun(matchRun('match-learning-complete', {
+      challengeMode: 'learning',
+      completed: true,
+      highestStage: 3,
+    }))
+    expect((await store.getDashboardSummary()).matchEndlessUnlocked).toBe(true)
   })
 
   it('orders successful chase runs by active time and failed runs by remaining distance', async () => {
@@ -265,6 +352,7 @@ describe('ProgressStore', () => {
     expect((await store.listRuns()).find((run) => run.id === 'legacy-frog')).toMatchObject({
       pausedMs: 0,
       failures: 0,
+      rescueHints: 0,
       usedFullHints: true,
       wordIds: [],
       mistakeWordIds: [],
