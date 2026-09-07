@@ -299,6 +299,8 @@ describe('FrogGamePage timing and lifecycle', () => {
 
   it('stops endless play on the third failure and persists the explicit count', async () => {
     vi.useFakeTimers()
+    const { FrogScene } = await import('../games/frog/FrogScene')
+    const cancelPendingActions = vi.spyOn(FrogScene.prototype, 'cancelPendingActions')
     const saveRun = vi.spyOn(progressStore, 'saveRun').mockResolvedValue('indexeddb')
     vi.spyOn(audioService, 'play').mockImplementation(() => {})
     vi.spyOn(audioService, 'speak').mockImplementation(() => {})
@@ -323,6 +325,7 @@ describe('FrogGamePage timing and lifecycle', () => {
     expect(screen.getByLabelText('失败 3 次，最多 3 次')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: '青蛙坐船回岸边了' })).toBeInTheDocument()
     expect(screen.getByText(/累计失败 3\/3 次，本局结束/)).toBeInTheDocument()
+    expect(cancelPendingActions).toHaveBeenCalledOnce()
     await act(async () => Promise.resolve())
     expect(saveRun).toHaveBeenCalledOnce()
     expect(saveRun.mock.calls[0][0]).toMatchObject({
@@ -334,6 +337,13 @@ describe('FrogGamePage timing and lifecycle', () => {
       highestStage: 4,
       rulesVersion: '1.4.0',
     })
+
+    act(() => vi.advanceTimersByTime(60_000))
+    fireEvent.keyDown(window, { key: 'x' })
+    await act(async () => Promise.resolve())
+    expect(screen.getByLabelText('失败 3 次，最多 3 次')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '青蛙坐船回岸边了' })).toBeInTheDocument()
+    expect(saveRun).toHaveBeenCalledOnce()
   })
 
   it('shows a storage warning when a failed run falls back to memory', async () => {

@@ -251,6 +251,7 @@ export function FrogGamePage({
     setStreak(0)
 
     if (nextFailures >= FROG_MAX_FAILURES) {
+      sceneRef.current?.cancelPendingActions()
       setGameStatus('lost')
       audioService.play('run.failure')
       void saveRun(false, correctWords, maxStreak, highestStageRef.current)
